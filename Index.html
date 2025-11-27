@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Buscador de Tarifas - Empresa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-3xl font-semibold">Buscador de Tarifas</h1>
+      <p class="text-sm text-gray-500 mt-1">Consulta tarifas por Cliente, Año, Mes y Servicio. Podés usar cualquier combinación.</p>
+    </header>
+
+    <main class="bg-white shadow-md rounded-xl p-6">
+      <!-- Form -->
+      <form id="searchForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="text-xs font-medium text-gray-600">Cliente</label>
+          <select id="cliente" class="mt-1 block w-full rounded-md border-gray-200"></select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-600">Año</label>
+          <select id="año" class="mt-1 block w-full rounded-md border-gray-200"></select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-600">Mes</label>
+          <select id="mes" class="mt-1 block w-full rounded-md border-gray-200"></select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-600">Servicio</label>
+          <select id="servicio" class="mt-1 block w-full rounded-md border-gray-200"></select>
+        </div>
+
+        <div class="md:col-span-4 flex gap-3 mt-2">
+          <button id="buscarBtn" type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow">Buscar</button>
+          <button id="limpiarBtn" type="button" class="px-4 py-2 border rounded-lg">Limpiar</button>
+          <div id="contador" class="ml-auto text-sm text-gray-600 self-center"></div>
+        </div>
+      </form>
+
+      <!-- Resultados -->
+      <section id="resultSection" class="mt-6">
+        <div id="loading" class="hidden py-6 text-center text-gray-500">Cargando...</div>
+        <div id="noResults" class="hidden py-6 text-center text-gray-500">No se encontraron resultados.</div>
+
+        <div id="results" class="grid grid-cols-1 gap-4"></div>
+      </section>
+    </main>
+
+    <footer class="mt-6 text-xs text-gray-500 text-center">
+      Hecho con ♥ — Página de consulta de tarifas
+    </footer>
+  </div>
+
+<script>
+  // Reemplaza por la URL de tu Apps Script desplegado
+  const API_BASE = 'https://script.google.com/macros/s/AKfycbz0Au2tLQT7HCz3qDNHbt-eLI8N0nM1c0kJReO7VvaMWCADlPwy69SOdatj1WAIQDeR-w/exec
+';
+
+  // Elementos
+  const clienteEl = document.getElementById('cliente');
+  const añoEl = document.getElementById('año');
+  const mesEl = document.getElementById('mes');
+  const servicioEl = document.getElementById('servicio');
+  const buscarBtn = document.getElementById('buscarBtn');
+  const limpiarBtn = document.getElementById('limpiarBtn');
+  const resultsEl = document.getElementById('results');
+  const loadingEl = document.getElementById('loading');
+  const noResultsEl = document.getElementById('noResults');
+  const contadorEl = document.getElementById('contador');
+  const form = document.getElementById('searchForm');
+
+  // Inicializar dropdowns (action=distinct)
+  async function initFilters() {
+    showLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}?action=distinct`);
+      const data = await res.json();
+      fillSelect(clienteEl, ['', ...data.clientes]);
+      fillSelect(añoEl, ['', ...data.años]);
+      fillSelect(mesEl, ['', ...data.meses]);
+      fillSelect(servicioEl, ['', ...data.servicios]);
+    } catch (err) {
+      console.error('Error al cargar filtros', err);
+      alert('No se pudieron cargar los filtros. Verifica la URL de la API.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function fillSelect(selectEl, items) {
+    selectEl.innerHTML = '';
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '— Todos —';
+    selectEl.appendChild(defaultOpt);
+    items.forEach(item => {
+      if (item === '') return;
+      const opt = document.createElement('option');
+      opt.value = item;
+      opt.textContent = item;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  function showLoading(show) {
+    loadingEl.classList.toggle('hidden', !show);
+  }
+
+  function showNoResults(show) {
+    noResultsEl.classList.toggle('hidden', !show);
+  }
+
+  function clearResults() {
+    resultsEl.innerHTML = '';
+    contadorEl.textContent = '';
+    showNoResults(false);
+  }
+
+  // Ejecuta búsqueda con parámetros (si están)
+  async function buscar(e) {
+    if (e) e.preventDefault();
+    clearResults();
+    showLoading(true);
+    const params = new URLSearchParams();
+    params.append('action','search');
+    if (clienteEl.value) params.append('cliente', clienteEl.value);
+    if (añoEl.value) params.append('año', añoEl.value);
+    if (mesEl.value) params.append('mes', mesEl.value);
+    if (servicioEl.value) params.append('servicio', servicioEl.value);
+
+    try {
+      const res = await fetch(`${API_BASE}?${params.toString()}`);
+      const data = await res.json();
+      if (data && data.results && data.results.length > 0) {
+        renderResults(data.results);
+        contadorEl.textContent = `${data.count} resultado(s)`;
+      } else {
+        showNoResults(true);
+        contadorEl.textContent = '0 resultados';
+      }
+    } catch (err) {
+      console.error('Error en búsqueda', err);
+      alert('Error al consultar la API. Revisa la consola.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function renderResults(rows) {
+    resultsEl.innerHTML = '';
+    // Mostrar como tarjetas (puedes cambiar el layout a tabla si preferís)
+    rows.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'p-4 border rounded-lg bg-gray-50';
+      card.innerHTML = `
+        <div class="flex items-start gap-4">
+          <div class="flex-1">
+            <div class="text-sm text-gray-500">Cliente</div>
+            <div class="font-medium">${escapeHtml(r.cliente)}</div>
+            <div class="mt-2 text-sm text-gray-500">Servicio</div>
+            <div>${escapeHtml(r.servicio)}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm text-gray-500">Año / Mes</div>
+            <div class="font-medium">${escapeHtml(r.año)} / ${escapeHtml(r.mes)}</div>
+            <div class="mt-3 text-lg font-semibold">${formatTarifa(r.tarifa)}</div>
+          </div>
+        </div>
+      `;
+      resultsEl.appendChild(card);
+    });
+  }
+
+  function formatTarifa(t) {
+    if (t === '' || t === null || t === undefined) return '-';
+    // si es número, formatear con separador de miles y 2 decimales
+    const num = Number(t);
+    if (!isNaN(num)) return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return escapeHtml(String(t));
+  }
+
+  function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // limpiar filtros
+  function limpiar() {
+    clienteEl.value = '';
+    añoEl.value = '';
+    mesEl.value = '';
+    servicioEl.value = '';
+    clearResults();
+  }
+
+  // eventos
+  form.addEventListener('submit', buscar);
+  limpiarBtn.addEventListener('click', () => {
+    limpiar();
+    // opcional: recargar todo
+    // initFilters();
+  });
+
+  // inicio
+  initFilters();
+</script>
+</body>
+</html>
