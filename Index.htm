@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Consulta de Tarifas - Chapelco Seguridad</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f4f4f4;
+        padding: 20px;
+    }
+    .container {
+        max-width: 800px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+        text-align: center;
+        color: #222;
+    }
+    select, button {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 16px;
+    }
+    button {
+        cursor: pointer;
+        background: #0056b3;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+    #resultado {
+        margin-top: 20px;
+        padding: 15px;
+        background: #eef;
+        border-radius: 8px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Buscador de Tarifas</h2>
+
+    <label>Cliente:</label>
+    <select id="cliente"></select>
+
+    <label>Año:</label>
+    <select id="año"></select>
+
+    <label>Mes:</label>
+    <select id="mes"></select>
+
+    <label>Servicio:</label>
+    <select id="servicio"></select>
+
+    <button onclick="buscar()">Buscar</button>
+
+    <div id="resultado"></div>
+</div>
+
+<script>
+// Tu API ya insertada aquí:
+const API_URL = "https://script.google.com/macros/s/AKfycbw-BkyyHCPr684VGoA7OBsEMOLnNJbOSow9DRMZ3qt0meOjSTJJBwAkZ4eQLFntvjnK/exec";
+
+// Cargar listas únicas
+async function cargarFiltros() {
+    try {
+        const r = await fetch(API_URL + "?action=distinct");
+        const data = await r.json();
+
+        cargarSelect("cliente", data.clientes);
+        cargarSelect("año", data.años);
+        cargarSelect("mes", data.meses);
+        cargarSelect("servicio", data.servicios);
+
+    } catch (err) {
+        alert("Error cargando filtros: " + err);
+    }
+}
+
+// Cargar un select con opciones
+function cargarSelect(id, lista) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = "<option value=''>-- Seleccionar --</option>";
+    lista.forEach(x => {
+        sel.innerHTML += `<option value="${x}">${x}</option>`;
+    });
+}
+
+// Buscar tarifas
+async function buscar() {
+    const c = document.getElementById("cliente").value;
+    const a = document.getElementById("año").value;
+    const m = document.getElementById("mes").value;
+    const s = document.getElementById("servicio").value;
+
+    let url = API_URL + "?action=search";
+
+    if (c) url += "&cliente=" + encodeURIComponent(c);
+    if (a) url += "&año=" + encodeURIComponent(a);
+    if (m) url += "&mes=" + encodeURIComponent(m);
+    if (s) url += "&servicio=" + encodeURIComponent(s);
+
+    const r = await fetch(url);
+    const data = await r.json();
+
+    mostrarResultados(data);
+}
+
+// Mostrar resultados
+function mostrarResultados(data) {
+    const div = document.getElementById("resultado");
+
+    if (!data.count) {
+        div.innerHTML = "<b>No se encontraron resultados.</b>";
+        return;
+    }
+
+    let html = `<h3>Resultados (${data.count})</h3>`;
+    data.results.forEach(r => {
+        html += `
+            <p>
+                <b>Cliente:</b> ${r.cliente}<br>
+                <b>Año:</b> ${r.año}<br>
+                <b>Mes:</b> ${r.mes}<br>
+                <b>Servicio:</b> ${r.servicio}<br>
+                <b>Tarifa:</b> $${r.tarifa}
+            </p>
+            <hr>
+        `;
+    });
+
+    div.innerHTML = html;
+}
+
+cargarFiltros();
+</script>
+
+</body>
+</html>
