@@ -52,7 +52,7 @@
 
     header.app-head {
       display:flex; 
-      gap:16px; /* Mantenido para separación con el texto */
+      gap:16px; 
       align-items:center;
       margin-bottom:12px;
     }
@@ -155,7 +155,7 @@
   <div class="card">
 
     <header class="app-head">
-            <div>
+      <div>
         <div class="brand-title">Chapelco Seguridad</div>
         <div class="brand-sub">Buscador de Tarifas — Consulta y exportación</div>
         <div class="brand-sub muted">Por favor, utilice el archivo guardado localmente para que se aplique correctamente el tema oscuro.</div>
@@ -259,10 +259,11 @@ async function cargarFiltros() {
       return;
     }
 
-    fillSelect(clienteEl, ['', ...data.clientes]);
-    fillSelect(añoEl, ['', ...data.años]);
-    fillSelect(mesEl, ['', ...data.meses]);
-
+    // CORRECCIÓN: Llamadas individuales para llenar selectores
+    fillSelect(clienteEl, [...data.clientes]);
+    fillSelect(añoEl, [...data.años]);
+    fillSelect(mesEl, [...data.meses]);
+    
     // servicios para select2
     $('#servicio').empty();
     data.servicios.forEach(s => {
@@ -279,12 +280,22 @@ async function cargarFiltros() {
   }
 }
 
+/**
+ * Llena un elemento <select> con opciones
+ * @param {HTMLElement} el Elemento select
+ * @param {Array<string>} arr Lista de valores
+ */
 function fillSelect(el, arr){
   el.innerHTML = '';
   const defaultOpt = document.createElement('option');
   defaultOpt.value = '';
-  defaultOpt.textContent = '-- Todos --';
-  el.appendChild(defaultOpt);
+  defaultOpt.textContent = el.id === 'cliente' ? '-- Todos --' : el.id === 'servicio' ? 'Seleccionar servicios' : ''; 
+  
+  // Solo añade la opción 'Todos' si no es el selector múltiple de servicio
+  if (el.id !== 'servicio') {
+    el.appendChild(defaultOpt);
+  }
+
   arr.forEach(it => {
     if (it === '') return;
     const o = document.createElement('option'); o.value = it; o.textContent = it;
@@ -335,7 +346,6 @@ function renderResultados(list){
   let html = `<h4 class="mb-3">Resultados (${list.length})</h4>`;
   html += `<div class="table-responsive"><table class="table table-borderless"><thead><tr><th>Servicio</th><th class="text-end">Tarifa</th></tr></thead><tbody>`;
   list.forEach(r => {
-    // Uso de formatNumber para incluir separador de miles
     html += `<tr><td>${escapeHtml(r.servicio)}</td><td class="text-end">$${formatNumber(r.tarifa)}</td></tr>`;
   });
   html += `</tbody></table></div>`;
@@ -368,7 +378,6 @@ async function generarPDF(){
   const rows = [];
   $("#resultado table tbody tr").each(function(){
     const servicio = $(this).find('td').eq(0).text();
-    // Se usa el texto ya formateado de la tabla para el PDF
     const tarifa = $(this).find('td').eq(1).text();
     rows.push([servicio, tarifa]);
   });
