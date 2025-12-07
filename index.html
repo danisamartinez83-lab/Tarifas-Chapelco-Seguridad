@@ -18,19 +18,123 @@
 
 <style>
     body {
-        background: #f2f4f8;
+        background: linear-gradient(135deg, #eef2f3, #dfe9f3);
+        font-family: 'Segoe UI', sans-serif;
     }
+
     .card {
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border-radius: 18px;
+        padding: 35px;
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.10);
+        border: 1px solid rgba(255,255,255,0.4);
     }
-    .select2-container .select2-selection--single,
-    .select2-container .select2-selection--multiple {
-        height: 45px !important;
-        padding: 8px;
+
+    h2 {
+        font-weight: 700;
+        color: #2b3a55;
+        letter-spacing: .5px;
+    }
+
+    label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    /* Inputs */
+    .form-select {
+        height: 46px;
+        border-radius: 10px;
+        font-size: 15px;
+        border: 1px solid #cbd5e1;
+        background-color: #fff;
+    }
+
+    /* Botones */
+    .btn-primary {
+        background: #2563eb;
+        border: none;
+        border-radius: 12px;
         font-size: 16px;
+        height: 48px;
+        transition: 0.25s;
+    }
+
+    .btn-primary:hover {
+        background: #1e40af;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6b7280;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        height: 48px;
+        transition: 0.25s;
+    }
+
+    .btn-secondary:hover {
+        background: #4b5563;
+        transform: translateY(-2px);
+    }
+
+    #btnPDF {
+        height: 55px;
+        border-radius: 14px;
+        font-size: 18px;
+        font-weight: 600;
+        background: #15803d;
+        border: none;
+        transition: 0.3s;
+    }
+
+    #btnPDF:hover {
+        background: #166534;
+        transform: translateY(-2px);
+    }
+
+    /* Tabla moderna */
+    table {
+        border-radius: 10px;
+        overflow: hidden;
+        background: #ffffff;
+    }
+
+    th {
+        background: #f3f4f6;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    tbody tr:nth-child(odd) {
+        background: #f9fafb;
+    }
+
+    tbody tr:hover {
+        background: #e5e7eb;
+    }
+
+    /* Select2 */
+    .select2-container--default .select2-selection--multiple {
+        border-radius: 10px;
+        min-height: 46px;
+        padding: 6px;
+        border: 1px solid #cbd5e1;
+    }
+
+    .select2-selection__choice {
+        background: #3b82f6 !important;
+        border: none !important;
+        padding: 6px 10px !important;
+        border-radius: 8px !important;
+        color: white !important;
+        font-size: 14px;
     }
 </style>
+
 
 </head>
 <body class="p-4">
