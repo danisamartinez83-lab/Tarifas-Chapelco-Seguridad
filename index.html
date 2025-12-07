@@ -28,10 +28,9 @@
 
     html,body { height:100%; }
     body {
-      /* ESTO DEFINE EL FONDO OSCURO */
       background: radial-gradient(circle at 10% 10%, rgba(255,122,24,0.04), transparent 10%),
                   linear-gradient(180deg,#071021 0%, var(--bg) 100%);
-      color: #e6eef8; /* ESTO DEFINE EL TEXTO CLARO */
+      color: #e6eef8;
       font-family: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
       margin:0;
       padding:30px;
@@ -51,12 +50,24 @@
     }
 
     header.app-head {
+      /* Se ajusta el layout sin el div.logo */
       display:flex; 
-      gap:16px; 
+      gap:16px;
       align-items:center;
       margin-bottom:12px;
     }
-
+    
+    /* Se elimina la clase .logo o se comenta si se desea */
+    /* .logo {
+      width:56px;
+      height:56px;
+      border-radius:10px;
+      background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid rgba(255,255,255,0.04);
+    } */
     .brand-title {
       font-size:22px;
       font-weight:700;
@@ -155,10 +166,9 @@
   <div class="card">
 
     <header class="app-head">
-      <div>
+            <div>
         <div class="brand-title">Chapelco Seguridad</div>
         <div class="brand-sub">Buscador de Tarifas — Consulta y exportación</div>
-        <div class="brand-sub muted">Por favor, utilice el archivo guardado localmente para que se aplique correctamente el tema oscuro.</div>
       </div>
     </header>
 
@@ -221,6 +231,8 @@
 /* --------- CONFIG --------- */
 /* Reemplazá por la URL final de tu Apps Script desplegado */
 const API_URL = "https://script.google.com/macros/s/AKfycbxn0Dot8ssKPRWZCoaWSXl1nmu-IXMxrOaMmYFG8Ou8PY35p3CDkq74aCW0EtfoNG7r/exec";
+
+/* Se quitó la constante logoSrc y su uso en el código */
 /* -------------------------- */
 
 const clienteEl = document.getElementById('cliente');
@@ -259,11 +271,10 @@ async function cargarFiltros() {
       return;
     }
 
-    // CORRECCIÓN: Llamadas individuales para llenar selectores
-    fillSelect(clienteEl, [...data.clientes]);
-    fillSelect(añoEl, [...data.años]);
-    fillSelect(mesEl, [...data.meses]);
-    
+    fillSelect(clienteEl, ['', ...data.clientes]);
+    fillSelect(añoEl, ['', ...data.años]);
+    fillSelect(mesEl, ['', ...data.meses]);
+
     // servicios para select2
     $('#servicio').empty();
     data.servicios.forEach(s => {
@@ -280,22 +291,12 @@ async function cargarFiltros() {
   }
 }
 
-/**
- * Llena un elemento <select> con opciones
- * @param {HTMLElement} el Elemento select
- * @param {Array<string>} arr Lista de valores
- */
 function fillSelect(el, arr){
   el.innerHTML = '';
   const defaultOpt = document.createElement('option');
   defaultOpt.value = '';
-  defaultOpt.textContent = el.id === 'cliente' ? '-- Todos --' : el.id === 'servicio' ? 'Seleccionar servicios' : ''; 
-  
-  // Solo añade la opción 'Todos' si no es el selector múltiple de servicio
-  if (el.id !== 'servicio') {
-    el.appendChild(defaultOpt);
-  }
-
+  defaultOpt.textContent = '-- Todos --';
+  el.appendChild(defaultOpt);
   arr.forEach(it => {
     if (it === '') return;
     const o = document.createElement('option'); o.value = it; o.textContent = it;
@@ -361,7 +362,7 @@ function limpiar(){
   btnPDF.classList.add('d-none');
 }
 
-/* PDF generation */
+/* PDF generation (Se eliminó la lógica de carga del logo para el PDF) */
 async function generarPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'pt', format:'a4' });
@@ -378,7 +379,7 @@ async function generarPDF(){
   const rows = [];
   $("#resultado table tbody tr").each(function(){
     const servicio = $(this).find('td').eq(0).text();
-    const tarifa = $(this).find('td').eq(1).text();
+    const tarifa = $(this).find('td').eq(1).text().replace(/\$/g,'').replace(/\./g,'');
     rows.push([servicio, tarifa]);
   });
 
@@ -387,7 +388,7 @@ async function generarPDF(){
   doc.setTextColor(40,40,40);
   rows.forEach(r => {
     doc.text(String(r[0]), margin, y);
-    doc.text(String(r[1]), 420, y, { align: 'right' });
+    doc.text(`$${r[1]}`, 420, y, { align: 'right' });
     y += 18;
     if (y > 740) { doc.addPage(); y = 40; }
   });
@@ -395,20 +396,11 @@ async function generarPDF(){
   doc.save(`Tarifas_${clienteEl.value}_${mesEl.value}_${añoEl.value}.pdf`);
 }
 
+/* Se eliminó la función blobToDataURL ya que no se usa el logo en el PDF */
+
 /* util */
 function escapeHtml(text){ return (text||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-/**
- * Formatea un número al formato de moneda Argentina (separador de miles con punto, dos decimales con coma).
- * @param {string|number} n El valor a formatear.
- * @returns {string} El valor formateado.
- */
-function formatNumber(n){ 
-  if(n===null||n===undefined||n==='') return '-'; 
-  const num = Number(String(n).replace(/[, ]+/g,'')); 
-  // 'es-AR' aplica el formato de moneda en Argentina: 12.345.678,90
-  return isNaN(num) ? String(n) : num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); 
-}
+function formatNumber(n){ if(n===null||n===undefined||n==='') return '-'; const num = Number(String(n).replace(/[, ]+/g,'')); return isNaN(num) ? String(n) : num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 </script>
 </body>
