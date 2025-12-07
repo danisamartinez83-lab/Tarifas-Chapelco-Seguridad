@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Consulta de Tarifas - Chapelco Seguridad</title>
+
+<!-- BOOTSTRAP -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- SELECT2 (select múltiple moderno) -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- SWEETALERT2 (alertas modernas) -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- JSPDF (para generar PDFs profesionales) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+    body {
+        background: #f2f4f8;
+    }
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .select2-container .select2-selection--single,
+    .select2-container .select2-selection--multiple {
+        height: 45px !important;
+        padding: 8px;
+        font-size: 16px;
+    }
+</style>
+
+</head>
+<body class="p-4">
+
+<div class="container">
+    <div class="card p-4">
+        <h2 class="text-center mb-4">Buscador de Tarifas</h2>
+
+        <div class="row g-3">
+            
+            <div class="col-md-6">
+                <label class="form-label">Cliente:</label>
+                <select id="cliente" class="form-select"></select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Año:</label>
+                <select id="año" class="form-select"></select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Mes:</label>
+                <select id="mes" class="form-select"></select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Servicio (múltiple):</label>
+                <select id="servicio" class="form-select" multiple></select>
+            </div>
+
+        </div>
+
+        <div class="d-flex gap-3 mt-4">
+            <button class="btn btn-primary w-100" onclick="buscar()">Buscar</button>
+            <button class="btn btn-secondary w-50" onclick="limpiar()">Limpiar</button>
+        </div>
+
+        <div id="resultado" class="mt-4"></div>
+
+        <button id="btnPDF" class="btn btn-success mt-3 d-none" onclick="generarPDF()">Descargar PDF</button>
+
+    </div>
+</div>
+
+
+<!-- JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+
+const API_URL = "https://script.google.com/macros/s/AKfycbxn0Dot8ssKPRWZCoaWSXl1nmu-IXMxrOaMmYFG8Ou8PY35p3CDkq74aCW0EtfoNG7r/exec";
+
+// Inicializar Select2
+$(document).ready(() => {
+    $('#servicio').select2({ placeholder: "Seleccionar servicios", width: '100%' });
+});
+
+// Cargar listas únicas
+async function cargarFiltros() {
+    try {
+        const r = await fetch(API_URL + "?action=distinct");
+        const data = await r.json();
+
+        cargarSelect("cliente", data.clientes);
+        cargarSelect("año", data.años);
+        cargarSelect("mes", data.meses);
+
+        // MULTI SELECT
+        data.servicios.forEach(s => {
+            $("#servicio").append(new Option(s, s));
+        });
+
+    } catch (err) {
+        Swal.fire("Error", "Error cargando filtros: " + err, "error");
+    }
+}
+
+function cargarSelect(id, lista) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = "<option value=''>-- Seleccionar --</option>";
+    lista.forEach(x => sel.innerHTML += `<option value="${x}">${x}</option>`);
+}
+
+// Buscar tarifas
+async function buscar() {
+    const c = cliente.value;
+    const a = año.value;
+    const m = mes.value;
+    const servicios = $("#servicio").val();
+
+    if (!c || !a || !m) {
+        return Swal.fire("Faltan datos", "Debe seleccionar cliente, año y mes", "warning");
+    }
+
+    let resultadosFinales = [];
+
+    for (const s of servicios) {
+        let url = `${API_URL}?action=search&cliente=${c}&año=${a}&mes=${m}&servicio=${s}`;
+        const r = await fetch(url);
+        const data = await r.json();
+        resultadosFinales.push(...data.results);
+    }
+
+    mostrarResultados(resultadosFinales);
+}
+
+function mostrarResultados(lista) {
+    const div = document.getElementById("resultado");
+
+    if (!lista.length) {
+        div.innerHTML = `<div class="alert alert-danger">No se encontraron resultados.</div>`;
+        btnPDF.classList.add("d-none");
+        return;
+    }
+
+    let html = `
+        <h4>Resultados (${lista.length})</h4>
+        <table class="table table-bordered mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Servicio</th>
+                <th>Tarifa</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+    lista.forEach(r => {
+        html += `
+            <tr>
+                <td>${r.servicio}</td>
+                <td>$${r.tarifa}</td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+
+    div.innerHTML = html;
+
+    btnPDF.classList.remove("d-none");
+}
+
+function limpiar() {
+    document.getElementById("cliente").value = "";
+    document.getElementById("año").value = "";
+    document.getElementById("mes").value = "";
+    $("#servicio").val(null).trigger("change");
+
+    resultado.innerHTML = "";
+    btnPDF.classList.add("d-none");
+}
+
+
+// 📄 GENERAR PDF PROFESIONAL
+function generarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Tarifario - Chapelco Seguridad", 10, 15);
+
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${cliente.value}`, 10, 30);
+    doc.text(`Año: ${año.value}`, 10, 38);
+    doc.text(`Mes: ${mes.value}`, 10, 46);
+
+    let y = 60;
+
+    $("#resultado table tbody tr").each(function () {
+        const servicio = $(this).find("td").eq(0).text();
+        const tarifa = $(this).find("td").eq(1).text();
+
+        doc.text(`Servicio: ${servicio}`, 10, y);
+        doc.text(`Tarifa: ${tarifa}`, 120, y);
+
+        y += 10;
+    });
+
+    doc.save(`Tarifas_${cliente.value}_${mes.value}_${año.value}.pdf`);
+}
+
+cargarFiltros();
+
+</script>
+
+</body>
+</html>
