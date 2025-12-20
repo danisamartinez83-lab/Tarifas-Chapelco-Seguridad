@@ -1,439 +1,292 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tarifas — Chapelco Seguridad</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarifario | Chapelco Seguridad Integral</title>
 
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Select2 -->
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #1a1a1a;
+    color: #f2f2f2;
+}
 
-  <!-- FontAwesome -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+.container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 20px;
+}
 
-  <!-- SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+/* ===== LOGO CORREGIDO ===== */
+.header {
+    position: fixed;
+    top: 3px;
+    right: 20px;
+    z-index: 1000;
+}
 
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+.header img {
+    width: 180px;
+    height: auto;
+    display: block;
+}
 
-  <style>
-    /* ===== DARK THEME + LAYOUT ===== */
-    :root {
-      --bg: #0f1724;
-      --card: rgba(16, 24, 39, 0.6);
-      --muted: #9aa6bd;
-      --accent: #ff7a18; /* naranja */
-      --accent-600: #ff6a00;
-      --glass-border: rgba(255,255,255,0.04);
-    }
+/* ========================= */
 
-    html,body { height:100%; }
-    body {
-      background: radial-gradient(circle at 10% 10%, rgba(255,122,24,0.04), transparent 10%),
-                  linear-gradient(180deg,#071021 0%, var(--bg) 100%);
-      color: #e6eef8;
-      font-family: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
-      margin:0;
-      padding:30px;
-    }
+.subtitle {
+    color: #aaa;
+    font-size: 14px;
+    margin-top: 60px; /* separa del logo */
+}
 
-    .wrapper {
-      max-width:1100px;
-      margin: 0 auto;
-    }
+.card {
+    background: #242424;
+    border-radius: 14px;
+    padding: 25px;
+}
 
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
-      border-radius: 16px;
-      padding: 28px;
-      box-shadow: 0 12px 30px rgba(2,6,23,0.65);
-      border: 1px solid var(--glass-border);
-    }
 
-    header.app-head {
-      display:flex;
-      gap:16px;
-      align-items:center;
-      margin-bottom:12px;
-    }
-    .logo {
-      width:56px;
-      height:56px;
-      border-radius:10px;
-      background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid rgba(255,255,255,0.04);
-    }
-    .brand-title {
-      font-size:22px;
-      font-weight:700;
-      color:#ffffff;
-      letter-spacing:0.2px;
-    }
-    .brand-sub { color:var(--muted); font-size:13px; margin-top:2px; }
+.filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+    gap: 15px;
+}
 
-    label { color: #cfe3ff; font-weight:600; font-size:13px; }
+label {
+    font-size: 13px;
+    color: #ccc;
+}
 
-    .form-select, .form-control {
-      background: rgba(255,255,255,0.02);
-      color: #e6eef8;
-      border: 1px solid rgba(255,255,255,0.04);
-      height:46px;
-      border-radius:10px;
-    }
+select, button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+}
 
-    /* Select2 adjustments */
-    .select2-container--default .select2-selection--multiple {
-      background: rgba(255,255,255,0.02);
-      border-radius:10px;
-      min-height:46px;
-      border:1px solid rgba(255,255,255,0.04);
-    }
-    .select2-selection__choice {
-      background: rgba(255,122,24,0.14) !important;
-      color: #fff !important;
-      border: 1px solid rgba(255,122,24,0.18) !important;
-      padding: 4px 8px !important;
-      border-radius: 8px !important;
-    }
+select {
+    background: #222;
+    color: #fff;
+}
 
-    .btn-primary {
-      background: linear-gradient(90deg,var(--accent),var(--accent-600));
-      border: none;
-      height:52px;
-      border-radius:12px;
-      font-weight:700;
-      box-shadow: 0 6px 18px rgba(255,122,24,0.12);
-    }
-    .btn-primary:hover { transform: translateY(-2px); }
+button {
+    background: #ff7a18;
+    font-weight: bold;
+    cursor: pointer;
+}
 
-    .btn-ghost {
-      background: rgba(255,255,255,0.03);
-      border:1px solid rgba(255,255,255,0.04);
-      color: #e6eef8;
-      height:52px;
-      border-radius:12px;
-      font-weight:600;
-    }
+button.secondary {
+    background: #444;
+    color: #fff;
+}
 
-    .results-card {
-      margin-top:20px;
-      background: linear-gradient(180deg, rgba(0,0,0,0.9), rgba(10,10,10,0.95))
-      border-radius: 12px;
-      color:#ffffff;
-      padding:16px;
-      border:1px solid rgba(255,255,255,0.03);
-    }
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
 
-    .table thead th { background: transparent; color:#cfe3ff; border-bottom:1px solid rgba(255,255,255,0.04); }
-    .table tbody tr { background: rgba(255,255,255,0.01);}
-    .table td, .table th { color:black; vertical-align:middle; }
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 25px;
+}
 
-    /* PDF button */
-    #btnPDF {
-      width:100%;
-      border-radius:12px;
-      padding:12px 18px;
-      margin-top:14px;
-      font-weight:700;
-      background: linear-gradient(90deg,#0ea5a5,#0b946d);
-      border:none;
-    }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
 
-    /* small helpers */
-    .muted { color:var(--muted); font-size:13px; }
-    .spacer { height:14px; }
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #333;
+}
 
-    /* responsive */
-    @media (max-width:767px){
-      .row-cols-2 .col-md-6 { width:100%; display:block; }
-    }
-
-    /* Loading spinner center */
-    .spinner {
-      display:none;
-      text-align:center;
-      padding:18px;
-    }
-  </style>
+th {
+    text-align: left;
+    color: #bbb;
+}
+</style>
 </head>
+
 <body>
 
-<div class="wrapper">
-  <div class="card">
-
-    <header class="app-head">
-      <div class="logo">
-        <!-- LOGO: reemplazar logoSrc si lo subes al repo como logo.png -->
-        <img id="logoImg" src="https://drive.google.com/uc?export=view&id=1zmiT-ecdsgBKTtuZbld0BjHpsyEkebbt" alt="logo" style="height:40px;">
-      </div>
-      <div>
-        <div class="brand-title">Chapelco Seguridad</div>
-        <div class="brand-sub">Buscador de Tarifas — Consulta y exportación</div>
-      </div>
-    </header>
-
-    <div class="spacer"></div>
-
-    <form id="filtros" onsubmit="event.preventDefault(); buscar();" >
-      <div class="row g-3 row-cols-2">
-        <div class="col-md-6">
-          <label for="cliente">Cliente</label>
-          <select id="cliente" class="form-select"></select>
-        </div>
-
-        <div class="col-md-6">
-          <label for="año">Año</label>
-          <select id="año" class="form-select"></select>
-        </div>
-
-        <div class="col-md-6">
-          <label for="mes">Mes</label>
-          <select id="mes" class="form-select"></select>
-        </div>
-
-        <div class="col-md-6">
-          <label for="servicio">Servicio (múltiple)</label>
-          <select id="servicio" class="form-control" multiple></select>
-        </div>
-      </div>
-
-      <div class="spacer"></div>
-
-      <div class="d-flex gap-3">
-        <button class="btn btn-primary flex-grow-1" type="submit">
-          <i class="fa-solid fa-magnifying-glass me-2"></i> Buscar
-        </button>
-        <button type="button" class="btn btn-ghost" onclick="limpiar()">
-          <i class="fa-solid fa-broom me-2"></i> Limpiar
-        </button>
-      </div>
-
-    </form>
-
-    <div id="loading" class="spinner">
-      <i class="fa-solid fa-spinner fa-spin" style="font-size:22px;color:var(--muted)"></i>
-    </div>
-
-    <div id="resultado" class="results-card" style="display:none;">
-      <!-- los resultados se renderizan aquí -->
-    </div>
-
-    <button id="btnPDF" class="d-none" onclick="generarPDF()">
-      <i class="fa-regular fa-file-pdf me-2"></i> Descargar PDF
-    </button>
-
-  </div>
+<!-- LOGO -->
+<div class="header">
+    <img src="./logo.png" alt="Logo de la empresa">
 </div>
 
-<!-- JS libs -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<div class="container">
+
+    <div class="subtitle">Tarifario de Servicios</div>
+
+    <div class="card">
+
+        <div class="filters">
+            <div>
+                <label>Cliente</label>
+                <select id="cliente"></select>
+            </div>
+
+            <div>
+                <label>Año</label>
+                <select id="anio"></select>
+            </div>
+
+            <div>
+                <label>Mes</label>
+                <select id="mes"></select>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button onclick="buscar()">Buscar tarifas</button>
+            <button class="secondary" onclick="limpiar()">Limpiar</button>
+            <button class="secondary" onclick="exportarPDF()">Exportar PDF</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="tabla" style="display:none">
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Tarifa</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
 
 <script>
-/* --------- CONFIG --------- */
-/* Reemplazá por la URL final de tu Apps Script desplegado */
-const API_URL = "https://script.google.com/macros/s/AKfycbxn0Dot8ssKPRWZCoaWSXl1nmu-IXMxrOaMmYFG8Ou8PY35p3CDkq74aCW0EtfoNG7r/exec";
+const API = "https://script.google.com/macros/s/AKfycbyYmNndzhboToYVJmIx0M3V8027X4eDHRAfXMtDWLwpo8eoZA2BgFzht1-X7Rxes0k5Rg/exec";
 
-/* Si prefieres usar el logo subido al repo, pon: const logoSrc = 'logo.png'; */
-const logoSrc = "https://drive.google.com/uc?export=view&id=1zmiT-ecdsgBKTtuZbld0BjHpsyEkebbt";
-/* -------------------------- */
-
-const clienteEl = document.getElementById('cliente');
-const añoEl = document.getElementById('año');
-const mesEl = document.getElementById('mes');
-const servicioEl = document.getElementById('servicio');
-const resultadoEl = document.getElementById('resultado');
-const loadingEl = document.getElementById('loading');
-const btnPDF = document.getElementById('btnPDF');
-
-function showLoading(show){
-  loadingEl.style.display = show ? 'block' : 'none';
-}
-
-$(document).ready(function(){
-  // inicializa Select2 para multiple
-  $('#servicio').select2({
-    placeholder: "Seleccionar servicios",
-    width: '100%',
-    dropdownParent: $('#servicio').parent()
-  });
-
-  // cargar filtros
-  cargarFiltros();
-});
+const clienteEl = () => document.getElementById("cliente");
+const anioEl = () => document.getElementById("anio");
+const mesEl = () => document.getElementById("mes");
 
 async function cargarFiltros() {
-  showLoading(true);
-  try {
-    const res = await fetch(`${API_URL}?action=distinct`);
+    const res = await fetch(API + "?action=distinct");
+    const d = await res.json();
+
+    fill(clienteEl(), d.clientes);
+    fill(anioEl(), d.años);
+    fill(mesEl(), d.meses);
+}
+
+function fill(select, arr) {
+    select.innerHTML = `<option value="">Seleccionar</option>`;
+    arr.forEach(v => select.innerHTML += `<option>${v}</option>`);
+}
+
+async function buscar() {
+    if (!clienteEl().value || !anioEl().value || !mesEl().value) {
+        alert("Seleccioná cliente, año y mes");
+        return;
+    }
+
+    const url = `${API}?action=search&cliente=${clienteEl().value}&año=${anioEl().value}&mes=${mesEl().value}`;
+    const res = await fetch(url);
     const data = await res.json();
-    // si hay error:
-    if (data.error) {
-      Swal.fire('Error', data.error, 'error');
-      showLoading(false);
-      return;
-    }
 
-    fillSelect(clienteEl, ['', ...data.clientes]);
-    fillSelect(añoEl, ['', ...data.años]);
-    fillSelect(mesEl, ['', ...data.meses]);
+    const tbody = document.querySelector("#tabla tbody");
+    tbody.innerHTML = "";
 
-    // servicios para select2
-    $('#servicio').empty();
-    data.servicios.forEach(s => {
-      const opt = new Option(s, s, false, false);
-      $('#servicio').append(opt);
+    data.results.forEach(r => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${r.servicio}</td>
+                <td>$ ${Number(r.tarifa).toLocaleString("es-AR")}</td>
+            </tr>
+        `;
     });
-    $('#servicio').trigger('change');
 
-  } catch (err) {
-    console.error(err);
-    Swal.fire('Error', 'No se pudieron cargar los filtros. Revisa la URL del API y la conexión.', 'error');
-  } finally {
-    showLoading(false);
-  }
+    document.getElementById("tabla").style.display = "table";
 }
 
-function fillSelect(el, arr){
-  el.innerHTML = '';
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = '-- Todos --';
-  el.appendChild(defaultOpt);
-  arr.forEach(it => {
-    if (it === '') return;
-    const o = document.createElement('option'); o.value = it; o.textContent = it;
-    el.appendChild(o);
-  });
+function limpiar() {
+    clienteEl().value = "";
+    anioEl().value = "";
+    mesEl().value = "";
+    document.getElementById("tabla").style.display = "none";
 }
 
-async function buscar(){
-  // validar
-  const c = clienteEl.value, a = añoEl.value, m = mesEl.value;
-  const servicios = $('#servicio').val() || [];
+function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
 
-  if (!c || !a || !m) {
-    return Swal.fire('Faltan datos', 'Seleccioná cliente, año y mes', 'warning');
-  }
+    // TITULO
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(255, 122, 24);
+    doc.text("CHAPELCO SEGURIDAD INTEGRAL", 105, 20, { align: "center" });
 
-  showLoading(true);
-  resultadoEl.style.display = 'none';
-  btnPDF.classList.add('d-none');
+    // SUBTITULO
+    doc.setFontSize(13);
+    doc.setTextColor(60);
+    doc.text("Tarifario de Servicios", 105, 30, { align: "center" });
 
-  try {
-    let resultadosFinales = [];
-    // hacemos fetch por cada servicio (tu API devuelve por servicio)
-    for (const s of servicios) {
-      const url = `${API_URL}?action=search&cliente=${encodeURIComponent(c)}&año=${encodeURIComponent(a)}&mes=${encodeURIComponent(m)}&servicio=${encodeURIComponent(s)}`;
-      const r = await fetch(url);
-      const data = await r.json();
-      if (data.results) resultadosFinales.push(...data.results);
-    }
+    // LINEA FUERTE (VISIBLE)
+    doc.setDrawColor(255, 122, 24);
+    doc.setLineWidth(1);
+    doc.line(20, 35, 190, 35);
 
-    renderResultados(resultadosFinales);
-  } catch (err) {
-    console.error(err);
-    Swal.fire('Error', 'Error realizando la búsqueda. Revisa la consola.', 'error');
-  } finally {
-    showLoading(false);
-  }
+    // RECUADRO CLIENTE
+    doc.setFillColor(240, 240, 240);
+    doc.setDrawColor(180);
+    doc.rect(14, 42, 182, 16, "FD");
+
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    doc.text(`Cliente: ${clienteEl().value}`, 18, 52);
+    doc.text(`Periodo: ${mesEl().value} ${anioEl().value}`, 140, 52);
+
+    // TABLA
+    let y = 75;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Servicio", 18, y);
+    doc.text("Tarifa", 165, y);
+
+    // línea encabezado
+    doc.setLineWidth(0.6);
+    doc.setDrawColor(0);
+    doc.line(18, y + 2, 190, y + 2);
+
+    y += 8;
+    doc.setFont("helvetica", "normal");
+
+    document.querySelectorAll("#tabla tbody tr").forEach(row => {
+        const cols = row.querySelectorAll("td");
+
+        doc.text(cols[0].innerText, 18, y);
+        doc.text(cols[1].innerText, 165, y);
+
+        // línea entre filas
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.3);
+        doc.line(18, y + 2, 190, y + 2);
+
+        y += 7;
+    });
+
+    doc.save(`Tarifario_${clienteEl().value}_${Date.now()}.pdf`);
 }
 
-function renderResultados(list){
-  resultadoEl.innerHTML = '';
-  if (!list || !list.length) {
-    resultadoEl.innerHTML = `<div class="alert alert-danger">No se encontraron resultados.</div>`;
-    resultadoEl.style.display = 'block';
-    return;
-  }
 
-  let html = `<h4 class="mb-3">Resultados (${list.length})</h4>`;
-  html += `<div class="table-responsive"><table class="table table-borderless"><thead><tr><th>Servicio</th><th class="text-end">Tarifa</th></tr></thead><tbody>`;
-  list.forEach(r => {
-    html += `<tr><td>${escapeHtml(r.servicio)}</td><td class="text-end">$${formatNumber(r.tarifa)}</td></tr>`;
-  });
-  html += `</tbody></table></div>`;
-  resultadoEl.innerHTML = html;
-  resultadoEl.style.display = 'block';
-  btnPDF.classList.remove('d-none');
-}
 
-function limpiar(){
-  clienteEl.value=''; añoEl.value=''; mesEl.value='';
-  $('#servicio').val(null).trigger('change');
-  resultadoEl.innerHTML=''; resultadoEl.style.display='none';
-  btnPDF.classList.add('d-none');
-}
-
-/* PDF generation (uses canvas to embed logo to avoid cross-origin issues when possible) */
-async function generarPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit:'pt', format:'a4' });
-  const margin = 40;
-  doc.setFontSize(18);
-  doc.setTextColor(20,20,20);
-
-  // get logo as dataURL (try fetch -> blob -> dataURL)
-  let logoDataUrl = null;
-  try {
-    const imgRes = await fetch(logoSrc, { mode:'cors' });
-    const blob = await imgRes.blob();
-    // convert to dataURL
-    logoDataUrl = await blobToDataURL(blob);
-  } catch (err) {
-    console.warn('No se pudo cargar logo desde Drive (CORS). Si falla, subí logo.png al repo y ajustá logoSrc.');
-  }
-
-  // header
-  if (logoDataUrl) {
-    doc.addImage(logoDataUrl, 'PNG', margin, 30, 80, 40);
-  }
-  doc.text(`Tarifas — ${clienteEl.value}`, margin + 90, 50);
-  doc.setFontSize(10);
-  doc.text(`Mes: ${mesEl.value}    Año: ${añoEl.value}`, margin + 90, 68);
-
-  // tabla
-  const rows = [];
-  $("#resultado table tbody tr").each(function(){
-    const servicio = $(this).find('td').eq(0).text();
-    const tarifa = $(this).find('td').eq(1).text().replace(/\$/g,'').replace(/\./g,'');
-    rows.push([servicio, tarifa]);
-  });
-
-  let y = 110;
-  doc.setFontSize(11);
-  doc.setTextColor(40,40,40);
-  rows.forEach(r => {
-    doc.text(String(r[0]), margin, y);
-    doc.text(`$${r[1]}`, 420, y, { align: 'right' });
-    y += 18;
-    if (y > 740) { doc.addPage(); y = 40; }
-  });
-
-  doc.save(`Tarifas_${clienteEl.value}_${mesEl.value}_${añoEl.value}.pdf`);
-}
-
-function blobToDataURL(blob){
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = () => res(reader.result);
-    reader.onerror = e => rej(e);
-    reader.readAsDataURL(blob);
-  });
-}
-
-/* util */
-function escapeHtml(text){ return (text||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function formatNumber(n){ if(n===null||n===undefined||n==='') return '-'; const num = Number(String(n).replace(/[, ]+/g,'')); return isNaN(num) ? String(n) : num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-
+cargarFiltros();
 </script>
+
 </body>
 </html>
+
 
