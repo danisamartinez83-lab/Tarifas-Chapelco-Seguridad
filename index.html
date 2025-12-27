@@ -244,11 +244,46 @@ async function buscar() {
 }
 
 function limpiar() {
+
+  // filtros principales
   clienteEl().value = "";
   anioEl().value = "";
   mesEl().value = "";
+
+  // tabla principal
   document.getElementById("tabla").style.display = "none";
+
+  // selector de servicio historial
+  const serv = document.getElementById("servicioHistorial");
+  if (serv) serv.innerHTML = `<option value="">Seleccionar servicio</option>`;
+
+  // período
+  const periodo = document.getElementById("periodo");
+  if (periodo) periodo.value = "";
+
+  // tabla historial
+  const tablaHist = document.getElementById("tablaHistorial");
+  if (tablaHist) tablaHist.style.display = "none";
+
+  // destruir gráficos
+  if (typeof chartPromedio !== "undefined" && chartPromedio) {
+    chartPromedio.destroy();
+    chartPromedio = null;
+  }
+
+  if (typeof chartVariacion !== "undefined" && chartVariacion) {
+    chartVariacion.destroy();
+    chartVariacion = null;
+  }
+
+  // limpiar canvas (por las dudas)
+  const c1 = document.getElementById("graficoHistorial");
+  const c2 = document.getElementById("graficoVariacion");
+
+  if (c1) c1.getContext("2d").clearRect(0,0,c1.width,c1.height);
+  if (c2) c2.getContext("2d").clearRect(0,0,c2.width,c2.height);
 }
+
 
 async function cargarHistorial() {
   const periodo = document.getElementById("periodo").value;
