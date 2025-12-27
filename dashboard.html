@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Tarifas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+.filtros {
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filtros select, .filtros button {
+  padding: 8px;
+  font-size: 14px;
+}
+
+.kpis {
+  display: flex;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.kpi {
+  flex: 1;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.kpi h2 {
+  margin: 5px 0;
+  font-size: 22px;
+}
+
+.graficos {
+  display: flex;
+  gap: 20px;
+}
+
+.grafico {
+  flex: 1;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.acciones {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📊 Dashboard de Tarifas</h1>
+
+<div class="filtros">
+  <select id="cliente"></select>
+  <select id="anio"></select>
+  <select id="servicio"></select>
+  <select id="periodo">
+    <option value="">Período</option>
+    <option value="anual">Anual</option>
+    <option value="semestral">Semestral</option>
+    <option value="trimestral">Trimestral</option>
+  </select>
+
+  <button onclick="cargarDashboard()">Ver dashboard</button>
+  <button onclick="limpiarTodo()">Limpiar</button>
+</div>
+
+<div class="kpis">
+  <div class="kpi">
+    <small>Promedio</small>
+    <h2 id="kpiPromedio">—</h2>
+  </div>
+  <div class="kpi">
+    <small>% Aumento</small>
+    <h2 id="kpiVariacion">—</h2>
+  </div>
+</div>
+
+<div class="graficos">
+  <div class="grafico">
+    <canvas id="graficoPromedios"></canvas>
+  </div>
+  <div class="grafico">
+    <canvas id="graficoVariacion"></canvas>
+  </div>
+</div>
+
+<div class="acciones">
+  <button onclick="window.location.href='index.html'">⬅ Volver</button>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
+
+let chartPromedios = null;
+let chartVariacion = null;
+
+window.onload = cargarFiltros;
+
+function cargarFiltros() {
+  fetch(`${API_URL}?action=distinct`)
+    .then(r => r.json())
+    .then(d => {
+      llenarSelect("cliente", d.clientes, "Cliente");
+      llenarSelect("anio", d.años, "Año");
+      llenarSelect("servicio", d.servicios, "Servicio");
+    });
+}
+
+function llenarSelect(id, data, label) {
+  const s = document.getElementById(id);
+  s.innerHTML = `<option value="">${label}</option>`;
+  data.forEach(v => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = v;
+    s.appendChild(o);
+  });
+}
+
+function cargarDashboard() {
+  const cliente = cliente.value;
+  const año = anio.value;
+  const servicio = servicio.value;
+  const periodo = periodo.value;
+
+  if (!cliente || !año || !servicio || !periodo) {
+    alert("Completa todos los filtros");
+    return;
+  }
+
+  fetch(`${API_URL}?action=historial&cliente=${cliente}&año=${año}&servicio=${servicio}&periodo=${periodo}`)
+    .then(r => r.json())
+    .then(d => {
+      renderKPIs(d.historial);
+      renderGraficos(d.historial);
+    });
+}
+
+function renderKPIs(data) {
+  const avg = data.reduce((a,b)=>a+b.promedio,0) / data.length;
+  document.getElementById("kpiPromedio").textContent = "$ " + Math.round(avg);
+
+  const ult = data[data.length-1].variacion;
+  document.getElementById("kpiVariacion").textContent = ult + " %";
+}
+
+function renderGraficos(data) {
+  if (chartPromedios) chartPromedios.destroy();
+  if (chartVariacion) chartVariacion.destroy();
+
+  const labels = data.map(d=>d.periodo);
+
+  chartPromedios = new Chart(graficoPromedios, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: data.map(d=>d.promedio) }]
+    }
+  });
+
+  chartVariacion = new Chart(graficoVariacion, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ data: data.map(d=>d.variacion) }]
+    }
+  });
+}
+
+function limpiarTodo() {
+  document.querySelectorAll("select").forEach(s=>s.value="");
+  document.getElementById("kpiPromedio").textContent = "—";
+  document.getElementById("kpiVariacion").textContent = "—";
+  if (chartPromedios) chartPromedios.destroy();
+  if (chartVariacion) chartVariacion.destroy();
+}
+</script>
+
+</body>
+</html>
+
