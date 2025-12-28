@@ -128,7 +128,23 @@ function cargarFiltros() {
     .then(d => {
       llenarSelect("cliente", d.clientes, "Cliente");
       llenarSelect("anio", d.años, "Año");
-      llenarSelect("servicio", d.servicios, "Servicio");
+    });
+
+  document.getElementById("cliente").addEventListener("change", cargarServicios);
+  document.getElementById("anio").addEventListener("change", cargarServicios);
+}
+
+function cargarServicios() {
+  const cliente = document.getElementById("cliente").value;
+  const anio = document.getElementById("anio").value;
+
+  if (!cliente || !anio) return;
+
+  fetch(`${API_URL}?action=search&cliente=${cliente}&año=${anio}`)
+    .then(r => r.json())
+    .then(d => {
+      const servicios = [...new Set(d.results.map(r => r.servicio))];
+      llenarSelect("servicio", servicios, "Servicio");
     });
 }
 
@@ -200,6 +216,8 @@ function limpiarTodo() {
   if (chartPromedios) chartPromedios.destroy();
   if (chartVariacion) chartVariacion.destroy();
 }
+cargarFiltros();
+
 </script>
 
 </body>
