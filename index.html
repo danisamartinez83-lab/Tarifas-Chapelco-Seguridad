@@ -292,10 +292,21 @@ async function cargarHistorial() {
   const año = anioEl().value;
   const servicio = document.getElementById("servicioHistorial").value;
 
-  if (!cliente || !año || !servicio || !periodo) return;
+  if (!cliente || !año || !servicio || !periodo) {
+    console.log("Faltan filtros", { cliente, año, servicio, periodo });
+    return;
+  }
 
-  const res = await fetch(`${API}?action=historial&cliente=${cliente}&año=${año}&servicio=${servicio}&periodo=${periodo}`);
+  const url = `${API}?action=historial&cliente=${cliente}&año=${año}&servicio=${servicio}&periodo=${periodo}`;
+  console.log("Consultando:", url);
+
+  const res = await fetch(url);
   const { historial } = await res.json();
+
+  if (!historial || !historial.length) {
+    console.warn("Historial vacío");
+    return;
+  }
 
   const tbody = document.querySelector("#tablaHistorial tbody");
   tbody.innerHTML = "";
@@ -314,6 +325,7 @@ async function cargarHistorial() {
   document.getElementById("tablaHistorial").style.display = "table";
   renderGraficos(historial);
 }
+
 
 function renderGraficos(historial) {
   const labels = historial.map(h => h.periodo);
@@ -354,7 +366,7 @@ function abrirDashboard() {
   const periodo = document.getElementById("periodo").value;
 
   if (!cliente || !anio || !servicio || !periodo) {
-    alert("Primero seleccioná un servicio y un período en el historial");
+    alert("Completá cliente, año, servicio y período");
     return;
   }
 
@@ -366,6 +378,7 @@ function abrirDashboard() {
 
   window.open(url, "_blank");
 }
+
 
 document.addEventListener("DOMContentLoaded", cargarFiltros);
 </script>
