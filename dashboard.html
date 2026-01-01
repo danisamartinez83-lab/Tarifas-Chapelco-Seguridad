@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Dashboard Tarifas</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -24,16 +25,16 @@ h1 {
 }
 
 .kpis {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
   gap: 20px;
   margin-bottom: 30px;
 }
 
 .kpi {
-  flex: 1;
   background: #1a1d24;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .kpi small {
@@ -45,20 +46,20 @@ h1 {
   font-size: 26px;
 }
 
+.kpi.verde { border-left: 6px solid #4caf50; }
+.kpi.amarillo { border-left: 6px solid #ff9800; }
+.kpi.rojo { border-left: 6px solid #f44336; }
+
 .graficos {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
 .grafico {
-  flex: 1;
   background: #1a1d24;
   padding: 20px;
-  border-radius: 10px;
-}
-
-.acciones {
-  margin-top: 30px;
+  border-radius: 12px;
 }
 
 button {
@@ -69,45 +70,30 @@ button {
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  margin-right: 10px;
-}
-
-button.sec {
-  background: #444;
-  color: #fff;
+  margin-top: 25px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>📊 Dashboard de Tarifas</h1>
+<h1 style="color:#ff7a18">📊 Dashboard Ejecutivo de Tarifas</h1>
 <div class="subtitulo" id="detalle"></div>
 
-<div class="kpis">
-  <div class="kpi">
-    <small>Promedio período</small>
-    <h2 id="kpiPromedio">—</h2>
-  </div>
-  <div class="kpi">
-    <small>% Variación</small>
-    <h2 id="kpiVariacion">—</h2>
-  </div>
-</div>
+<div class="kpis" id="kpis"></div>
 
 <div class="graficos">
   <div class="grafico">
+    <h3>Promedio trimestral</h3>
     <canvas id="graficoPromedios"></canvas>
   </div>
   <div class="grafico">
+    <h3>Variación trimestral (%)</h3>
     <canvas id="graficoVariacion"></canvas>
   </div>
 </div>
 
-<div class="acciones">
-  <button onclick="window.location.href='index.html'">⬅ Volver</button>
-  <button class="sec" onclick="limpiarDashboard()">Limpiar</button>
-</div>
+<button onclick="window.close()">Cerrar dashboard</button>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
@@ -130,33 +116,55 @@ document.getElementById("detalle").textContent =
 
 cargarDashboard();
 
-function cargarDashboard() {
-  fetch(`${API_URL}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=${periodo}`)
-    .then(r => r.json())
-    .then(data => {
-      if (!data || data.length === 0) {
-        alert("No hay datos para mostrar");
-        return;
-      }
-      renderKPIs(data);
-      renderGraficos(data);
-    });
+async function cargarDashboard() {
+  const res = await fetch(
+    `${API_URL}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=${periodo}`
+  );
+
+  const data = await res.json();
+  if (!data.historial || data.historial.length === 0) {
+    alert("No hay datos para mostrar");
+    return;
+  }
+
+  const historial = data.historial;
+  renderKPIs(historial);
+  renderGraficos(historial);
 }
 
 function renderKPIs(data) {
-  const avg = data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
-  document.getElementById("kpiPromedio").textContent =
-    "$ " + Math.round(avg).toLocaleString("es-AR");
+  const promedioGeneral =
+    data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
 
-  document.getElementById("kpiVariacion").textContent =
-    data[data.length - 1].variacion + " %";
+  const variacionActual = data[data.length - 1].variacion;
+
+  let estado = "verde";
+  if (variacionActual > 10) estado = "rojo";
+  else if (variacionActual > 5) estado = "amarillo";
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi">
+      <small>Promedio trimestral</small>
+      <h2>$ ${Math.round(promedioGeneral).toLocaleString("es-AR")}</h2>
+    </div>
+
+    <div class="kpi ${estado}">
+      <small>Variación último trimestre</small>
+      <h2>${variacionActual > 0 ? "+" : ""}${variacionActual} %</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Trimestres analizados</small>
+      <h2>${data.length}</h2>
+    </div>
+  `;
 }
 
 function renderGraficos(data) {
+  const labels = data.map(d => d.periodo);
+
   if (chartPromedios) chartPromedios.destroy();
   if (chartVariacion) chartVariacion.destroy();
-
-  const labels = data.map(d => d.periodo);
 
   chartPromedios = new Chart(document.getElementById("graficoPromedios"), {
     type: "bar",
@@ -177,17 +185,11 @@ function renderGraficos(data) {
       datasets: [{
         label: "% Variación",
         data: data.map(d => d.variacion),
-        borderColor: "#4bc0c0"
+        borderColor: "#4bc0c0",
+        tension: 0.3
       }]
     }
   });
-}
-
-function limpiarDashboard() {
-  document.getElementById("kpiPromedio").textContent = "—";
-  document.getElementById("kpiVariacion").textContent = "—";
-  if (chartPromedios) chartPromedios.destroy();
-  if (chartVariacion) chartVariacion.destroy();
 }
 </script>
 
