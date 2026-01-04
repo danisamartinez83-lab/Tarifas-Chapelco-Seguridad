@@ -41,6 +41,19 @@ async function cargarDashboard() {
   calcularKPIs(historial);
   renderGraficos(historial);
 }
+Promise.all([
+  fetch(`${API_URL}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`)
+    .then(r => r.json()),
+  fetch(`${API_URL}?action=inflacion_trimestral&año=${anio}`)
+    .then(r => r.json())
+])
+.then(([hist, infl]) => {
+  const historial = hist.historial;
+  const inflacion = infl.inflacion;
+
+  calcularKPIs(historial, inflacion);
+  renderGraficos(historial, inflacion);
+});
 
 // =====================
 // KPIs
@@ -90,6 +103,46 @@ function calcularKPIs(historial) {
   ];
 
   renderKPIs(kpis);
+}
+function calcularKPIs(historial, inflacion) {
+
+  const mapaInflacion = {};
+  inflacion.forEach(i => mapaInflacion[i.periodo] = i.inflacion);
+
+  let trimestresBajoInflacion = 0;
+  let peorBrecha = 999;
+  let trimestreCritico = "";
+
+  historial.forEach(h => {
+    const ipc = mapaInflacion[h.periodo] ?? 0;
+    const brecha = Number((h.variacion - ipc).toFixed(2));
+
+    h.inflacion = ipc;
+    h.brecha = brecha;
+
+    if (brecha < 0) trimestresBajoInflacion++;
+    if (brecha < peorBrecha) {
+      peorBrecha = brecha;
+      trimestreCritico = h.periodo;
+    }
+  });
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi">
+      <small>Brecha último trimestre</small>
+      <h2>${historial.at(-1).brecha}%</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Trimestres bajo inflación</small>
+      <h2>${trimestresBajoInflacion} / ${historial.length}</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Trimestre crítico</small>
+      <h2>${trimestreCritico}</h2>
+    </div>
+  `;
 }
 
 // =====================
@@ -144,4 +197,29 @@ function renderGraficos(historial) {
       }]
     }
   });
+
+  function renderGraficos(historial) {
+
+  const labels = historial.map(h => h.periodo);
+
+  new Chart(document.getElementById("graficoVariacion"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Variación tarifa %",
+          data: historial.map(h => h.variacion),
+          borderWidth: 2
+        },
+        {
+          label: "Inflación %",
+          data: historial.map(h => h.inflacion),
+          borderDash: [6,6],
+          borderWidth: 2
+        }
+      ]
+    }
+  });
+} 
 }
