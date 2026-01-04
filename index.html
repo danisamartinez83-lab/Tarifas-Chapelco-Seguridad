@@ -370,13 +370,14 @@ function abrirDashboard() {
     return;
   }
 
-  const url =
-    `dashboard.html?cliente=${encodeURIComponent(cliente)}` +
-    `&año=${encodeURIComponent(anio)}` +
-    `&servicio=${encodeURIComponent(servicio)}` +
-    `&periodo=${encodeURIComponent(periodo)}`;
+const url =
+  `dashboard.html?cliente=${encodeURIComponent(cliente)}` +
+  `&anio=${encodeURIComponent(anio)}` +
+  `&servicio=${encodeURIComponent(servicio)}` +
+  `&periodo=${encodeURIComponent(periodo)}`;
 
-  window.open(url, "_blank");
+window.open(url, "_blank");
+
 }
 
 
