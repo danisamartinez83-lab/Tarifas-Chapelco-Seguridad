@@ -101,8 +101,12 @@ if (!cliente || !anio || !servicio || !periodo) {
 document.getElementById("detalle").textContent =
   `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio} | Período: ${periodo}`;
 
-cargarDashboard();
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  return await r.json();
+}
 
+cargarDashboard();
 async function cargarDashboard() {
 
   const resHist = await fetch(
@@ -111,25 +115,21 @@ async function cargarDashboard() {
   const dataHist = await resHist.json();
 
   if (!dataHist.historial || dataHist.historial.length === 0) {
-    alert("No hay datos para mostrar");
+    alert("No hay datos de historial");
     return;
   }
 
-  let inflacion = [];
+  const resInflacion = await fetch(
+    `${API_URL}?action=inflacion_trimestral&año=${anio}`
+  );
+  const dataInflacion = await resInflacion.json();
 
-  try {
-    const resInf = await fetch(
-      `${API_URL}?action=inflacion_trimestral&anio=${anio}`
-    );
-    const dataInf = await resInf.json();
-    inflacion = dataInf.inflacion || [];
-  } catch (e) {
-    console.warn("Inflación no disponible");
-  }
+  const inflacion = dataInflacion.inflacion || [];
 
-  renderKPIs(dataHist.historial);
+  renderKPIs(dataHist.historial, inflacion);
   renderGraficos(dataHist.historial, inflacion);
 }
+
 
 function renderKPIs(data, inflacion = []) {
 
