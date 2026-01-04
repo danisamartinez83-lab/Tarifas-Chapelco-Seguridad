@@ -131,16 +131,28 @@ async function cargarDashboard() {
   renderGraficos(dataHist.historial, inflacion);
 }
 
+function renderKPIs(data, inflacion = []) {
 
-function renderKPIs(data) {
   const promedioGeneral =
     data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
 
   const variacionActual = data[data.length - 1].variacion;
 
+  let inflacionActual = null;
+  if (inflacion.length) {
+    inflacionActual = inflacion[inflacion.length - 1].inflacion;
+  }
+
+  let brecha = null;
+  if (inflacionActual !== null) {
+    brecha = Number((variacionActual - inflacionActual).toFixed(2));
+  }
+
   let estado = "verde";
-  if (variacionActual > 10) estado = "rojo";
-  else if (variacionActual > 5) estado = "amarillo";
+  if (brecha !== null) {
+    if (brecha < -2) estado = "rojo";
+    else if (brecha < 0) estado = "amarillo";
+  }
 
   document.getElementById("kpis").innerHTML = `
     <div class="kpi">
@@ -148,9 +160,16 @@ function renderKPIs(data) {
       <h2>$ ${Math.round(promedioGeneral).toLocaleString("es-AR")}</h2>
     </div>
 
-    <div class="kpi ${estado}">
+    <div class="kpi">
       <small>Variación último trimestre</small>
       <h2>${variacionActual > 0 ? "+" : ""}${variacionActual} %</h2>
+    </div>
+
+    <div class="kpi ${estado}">
+      <small>Brecha vs inflación</small>
+      <h2>
+        ${brecha === null ? "—" : (brecha > 0 ? "+" : "") + brecha + " %"}
+      </h2>
     </div>
 
     <div class="kpi">
@@ -159,15 +178,9 @@ function renderKPIs(data) {
     </div>
   `;
 }
+function renderGraficos(data, inflacion = []) {
 
-function renderGraficos(historial, inflacion) {
-
-  const labels = historial.map(h => h.periodo);
-  const variacionTarifa = historial.map(h => h.variacion);
-
-  const inflacionMap = {};
-  inflacion.forEach(i => inflacionMap[i.periodo] = i.inflacion);
-  const inflacionData = labels.map(p => inflacionMap[p] ?? null);
+  const labels = data.map(d => d.periodo);
 
   if (chartPromedios) chartPromedios.destroy();
   if (chartVariacion) chartVariacion.destroy();
@@ -177,35 +190,41 @@ function renderGraficos(historial, inflacion) {
     data: {
       labels,
       datasets: [{
-        label: "Promedio",
-        data: historial.map(h => h.promedio),
+        label: "Promedio tarifa",
+        data: data.map(d => d.promedio),
         backgroundColor: "#f0822d"
       }]
     }
   });
 
+  const datasets = [
+    {
+      label: "% Variación tarifa",
+      data: data.map(d => d.variacion),
+      borderColor: "#4bc0c0",
+      tension: 0.3
+    }
+  ];
+
+  if (inflacion.length) {
+    datasets.push({
+      label: "Inflación trimestral",
+      data: inflacion.map(i => i.inflacion),
+      borderColor: "#ff5252",
+      borderDash: [5,5],
+      tension: 0.3
+    });
+  }
+
   chartVariacion = new Chart(document.getElementById("graficoVariacion"), {
     type: "line",
     data: {
       labels,
-      datasets: [
-        {
-          label: "Variación tarifa (%)",
-          data: variacionTarifa,
-          borderColor: "#4bc0c0",
-          tension: 0.3
-        },
-        {
-          label: "Inflación (%)",
-          data: inflacionData,
-          borderColor: "#ff9800",
-          borderDash: [6,6],
-          tension: 0.3
-        }
-      ]
+      datasets
     }
   });
 }
+
 </script>
 
 </body>
