@@ -110,19 +110,27 @@ async function cargarDashboard() {
   );
   const dataHist = await resHist.json();
 
-  const resInf = await fetch(
-    `${API_URL}?action=inflacion_trimestral&año=${anio}`
-  );
-  const dataInf = await resInf.json();
-
   if (!dataHist.historial || dataHist.historial.length === 0) {
     alert("No hay datos para mostrar");
     return;
   }
 
+  let inflacion = [];
+
+  try {
+    const resInf = await fetch(
+      `${API_URL}?action=inflacion_trimestral&anio=${anio}`
+    );
+    const dataInf = await resInf.json();
+    inflacion = dataInf.inflacion || [];
+  } catch (e) {
+    console.warn("Inflación no disponible");
+  }
+
   renderKPIs(dataHist.historial);
-  renderGraficos(dataHist.historial, dataInf.inflacion || []);
+  renderGraficos(dataHist.historial, inflacion);
 }
+
 
 function renderKPIs(data) {
   const promedioGeneral =
