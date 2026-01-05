@@ -15,14 +15,8 @@ body {
   padding: 30px;
 }
 
-h1 {
-  margin-bottom: 5px;
-}
-
-.subtitulo {
-  color: #aaa;
-  margin-bottom: 25px;
-}
+h1 { margin-bottom: 5px; }
+.subtitulo { color: #aaa; margin-bottom: 25px; }
 
 .kpis {
   display: grid;
@@ -37,14 +31,8 @@ h1 {
   border-radius: 12px;
 }
 
-.kpi small {
-  color: #aaa;
-}
-
-.kpi h2 {
-  margin: 10px 0 0;
-  font-size: 26px;
-}
+.kpi small { color: #aaa; }
+.kpi h2 { margin: 10px 0 0; font-size: 26px; }
 
 .kpi.verde { border-left: 6px solid #4caf50; }
 .kpi.amarillo { border-left: 6px solid #ff9800; }
@@ -102,10 +90,10 @@ let chartPromedios = null;
 let chartVariacion = null;
 
 const params = new URLSearchParams(window.location.search);
-const cliente = params.get("cliente");
-const anio = params.get("año");
+const cliente  = params.get("cliente");
+const anio     = params.get("anio");   // ✅ SIN ñ
 const servicio = params.get("servicio");
-const periodo = params.get("periodo");
+const periodo  = params.get("periodo");
 
 if (!cliente || !anio || !servicio || !periodo) {
   alert("Faltan parámetros para el dashboard");
@@ -118,7 +106,7 @@ cargarDashboard();
 
 async function cargarDashboard() {
   const res = await fetch(
-    `${API_URL}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=${periodo}`
+    `${API_URL}?action=historial&cliente=${cliente}&anio=${anio}&servicio=${servicio}&periodo=${periodo}`
   );
 
   const data = await res.json();
@@ -127,12 +115,12 @@ async function cargarDashboard() {
     return;
   }
 
-  const historial = data.historial;
-  renderKPIs(historial);
-  renderGraficos(historial);
+  renderKPIs(data.historial);
+  renderGraficos(data.historial);
 }
 
 function renderKPIs(data) {
+
   const promedioGeneral =
     data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
 
@@ -161,6 +149,7 @@ function renderKPIs(data) {
 }
 
 function renderGraficos(data) {
+
   const labels = data.map(d => d.periodo);
 
   if (chartPromedios) chartPromedios.destroy();
