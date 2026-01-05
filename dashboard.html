@@ -83,14 +83,14 @@ const params = new URLSearchParams(window.location.search);
 const cliente  = params.get("cliente");
 const anio     = params.get("anio");
 const servicio = params.get("servicio");
-const periodo  = params.get("periodo");
 
-if (!cliente || !anio || !servicio || !periodo) {
+
+if (!cliente || !anio || !servicio ) {
   alert("Faltan parámetros");
 }
 
 document.getElementById("detalle").textContent =
-  `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio} | Período: ${periodo}`;
+  `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio} | Período=Trimestral`;
 
 // =======================
 // CARGA
@@ -104,7 +104,7 @@ async function cargar() {
     `&cliente=${encodeURIComponent(cliente)}` +
     `&anio=${encodeURIComponent(anio)}` +
     `&servicio=${encodeURIComponent(servicio)}` +
-    `&periodo=${encodeURIComponent(periodo)}`;
+    `&periodo=trimestral`;
 
   const res = await fetch(url);
   const json = await res.json();
