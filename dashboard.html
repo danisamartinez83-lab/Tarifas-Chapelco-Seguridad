@@ -49,17 +49,6 @@ h1 { margin-bottom: 5px; }
   padding: 20px;
   border-radius: 12px;
 }
-
-button {
-  background: #f0822d;
-  border: none;
-  color: #000;
-  padding: 10px 18px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 25px;
-}
 </style>
 </head>
 
@@ -81,54 +70,68 @@ button {
   </div>
 </div>
 
-<button onclick="window.close()">Cerrar dashboard</button>
-
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
 
-let chartPromedios = null;
-let chartVariacion = null;
+let chartPromedios;
+let chartVariacion;
 
+// =======================
+// PARAMETROS
+// =======================
 const params = new URLSearchParams(window.location.search);
 const cliente  = params.get("cliente");
-const anio     = params.get("anio");   // ✅ SIN ñ
+const anio     = params.get("anio");
 const servicio = params.get("servicio");
 const periodo  = params.get("periodo");
 
 if (!cliente || !anio || !servicio || !periodo) {
-  alert("Faltan parámetros para el dashboard");
+  alert("Faltan parámetros");
 }
 
 document.getElementById("detalle").textContent =
   `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio} | Período: ${periodo}`;
 
-cargarDashboard();
+// =======================
+// CARGA
+// =======================
+cargar();
 
-async function cargarDashboard() {
-  const res = await fetch(
-    `${API_URL}?action=historial&cliente=${cliente}&anio=${anio}&servicio=${servicio}&periodo=${periodo}`
-  );
+async function cargar() {
 
-  const data = await res.json();
-  if (!data.historial || data.historial.length === 0) {
-    alert("No hay datos para mostrar");
+  const url =
+    `${API_URL}?action=historial` +
+    `&cliente=${encodeURIComponent(cliente)}` +
+    `&anio=${encodeURIComponent(anio)}` +
+    `&servicio=${encodeURIComponent(servicio)}` +
+    `&periodo=${encodeURIComponent(periodo)}`;
+
+  const res = await fetch(url);
+  const json = await res.json();
+
+  if (!json.historial || json.historial.length === 0) {
+    alert("No hay datos de historial");
+    console.log("Respuesta API:", json);
     return;
   }
 
-  renderKPIs(data.historial);
-  renderGraficos(data.historial);
+  renderKPIs(json.historial);
+  renderGraficos(json.historial);
 }
 
+// =======================
+// KPIS
+// =======================
 function renderKPIs(data) {
 
   const promedioGeneral =
-    data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
+    data.reduce((a,b)=>a + b.promedio, 0) / data.length;
 
   const variacionActual = data[data.length - 1].variacion;
 
   let estado = "verde";
-  if (variacionActual > 10) estado = "rojo";
-  else if (variacionActual > 5) estado = "amarillo";
+  if (variacionActual < 0) estado = "rojo";
+  else if (variacionActual < 2) estado = "amarillo";
 
   document.getElementById("kpis").innerHTML = `
     <div class="kpi">
@@ -142,12 +145,15 @@ function renderKPIs(data) {
     </div>
 
     <div class="kpi">
-      <small>Trimestres analizados</small>
+      <small>Trimestres</small>
       <h2>${data.length}</h2>
     </div>
   `;
 }
 
+// =======================
+// GRAFICOS
+// =======================
 function renderGraficos(data) {
 
   const labels = data.map(d => d.periodo);
@@ -155,30 +161,36 @@ function renderGraficos(data) {
   if (chartPromedios) chartPromedios.destroy();
   if (chartVariacion) chartVariacion.destroy();
 
-  chartPromedios = new Chart(document.getElementById("graficoPromedios"), {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Promedio",
-        data: data.map(d => d.promedio),
-        backgroundColor: "#f0822d"
-      }]
+  chartPromedios = new Chart(
+    document.getElementById("graficoPromedios"),
+    {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Promedio",
+          data: data.map(d => d.promedio),
+          backgroundColor: "#f0822d"
+        }]
+      }
     }
-  });
+  );
 
-  chartVariacion = new Chart(document.getElementById("graficoVariacion"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "% Variación",
-        data: data.map(d => d.variacion),
-        borderColor: "#4bc0c0",
-        tension: 0.3
-      }]
+  chartVariacion = new Chart(
+    document.getElementById("graficoVariacion"),
+    {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "% Variación",
+          data: data.map(d => d.variacion),
+          borderColor: "#4bc0c0",
+          tension: 0.3
+        }]
+      }
     }
-  });
+  );
 }
 </script>
 
