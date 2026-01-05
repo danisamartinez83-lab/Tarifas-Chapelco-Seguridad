@@ -2,36 +2,43 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-
-  <head>
-  <meta charset="UTF-8">
   <title>Dashboard</title>
 
-  <link rel="stylesheet" href="dashboard.css">
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
 
-  <title>Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /* ===============================
+       TEMA OSCURO
+    ================================ */
     body {
       font-family: Arial, sans-serif;
       margin: 30px;
-      background: #f6f6f6;
+      background-color: #0f1115;
+      color: #eaeaea;
     }
+
     h2 {
       margin-bottom: 5px;
+      color: #ff7a18;
     }
+
+    #subtitulo {
+      color: #b0b0b0;
+      margin-bottom: 20px;
+    }
+
     #error {
-      color: red;
+      color: #ff5252;
       font-weight: bold;
       margin-top: 20px;
     }
+
+    /* Contenedor visual del gráfico */
     canvas {
-      background: #fff;
+      background-color: #171a21;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
     }
   </style>
 </head>
@@ -107,17 +114,30 @@ function renderGrafico(historial) {
       datasets: [{
         label: "Promedio trimestral",
         data: valores,
-        tension: 0.3
+        borderColor: "#ff7a18",
+        backgroundColor: "rgba(255,122,24,0.15)",
+        pointBackgroundColor: "#ff7a18",
+        tension: 0.3,
+        fill: true
       }]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { display: true }
+        legend: {
+          labels: {
+            color: "#eaeaea"
+          }
+        }
       },
       scales: {
+        x: {
+          ticks: { color: "#cfcfcf" },
+          grid: { color: "#222" }
+        },
         y: {
-          beginAtZero: false
+          ticks: { color: "#cfcfcf" },
+          grid: { color: "#222" }
         }
       }
     }
