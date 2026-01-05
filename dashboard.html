@@ -80,18 +80,13 @@ let chartVariacion;
 // PARAMETROS
 // =======================
 const params = new URLSearchParams(window.location.search);
-const cliente  = params.get("cliente");
-const anio     = params.get("anio");
+const cliente = params.get("cliente");  
+const anio = params.get("anio");
 const servicio = params.get("servicio");
+document.getElementById("detalle").innerText =
+  `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio}`; 
 
-
-if (!cliente || !anio || !servicio ) {
-  alert("Faltan parámetros");
-}
-
-document.getElementById("detalle").textContent =
-  `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio} | Período=Trimestral`;
-
+  
 // =======================
 // CARGA
 // =======================
