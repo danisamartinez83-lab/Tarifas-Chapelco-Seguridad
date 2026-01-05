@@ -71,11 +71,11 @@ button {
 
 <div class="graficos">
   <div class="grafico">
-    <h3>Promedio trimestral</h3>
+    <h3>Promedio por período</h3>
     <canvas id="graficoPromedios"></canvas>
   </div>
   <div class="grafico">
-    <h3>Variación vs Inflación (%)</h3>
+    <h3>Variación (%)</h3>
     <canvas id="graficoVariacion"></canvas>
   </div>
 </div>
@@ -88,9 +88,12 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3
 let chartPromedios = null;
 let chartVariacion = null;
 
-const params = new URLSearchParams(window.location.search);
+// ================================
+// PARAMETROS DESDE INDEX
+// ================================
+const params   = new URLSearchParams(window.location.search);
 const cliente  = params.get("cliente");
-const anio     = params.get("anio");
+const anio     = params.get("anio"); // 👈 SIN ñ
 const servicio = params.get("servicio");
 const periodo  = params.get("periodo");
 
@@ -103,82 +106,64 @@ document.getElementById("detalle").textContent =
 
 cargarDashboard();
 
+// ================================
+// CARGA PRINCIPAL
+// ================================
 async function cargarDashboard() {
 
-  const resHist = await fetch(
-    `${API_URL}?action=historial&cliente=${cliente}&anio=${anio}&servicio=${servicio}&periodo=${periodo}`
+  const res = await fetch(
+    `${API_URL}?action=historial&cliente=${encodeURIComponent(cliente)}&anio=${anio}&servicio=${encodeURIComponent(servicio)}&periodo=${periodo}`
   );
 
-  const dataHist = await resHist.json();
-  console.log("Historial recibido:", dataHist);
+  const data = await res.json();
 
-  // ✅ COMPATIBILIDAD
-  const historial =
-    dataHist.historial ||
-    dataHist.data ||
-    [];
-
-  if (!historial.length) {
+  if (!data.historial || data.historial.length === 0) {
     alert("No hay datos de historial para los filtros seleccionados");
     return;
   }
 
-  const resInf = await fetch(
-    `${API_URL}?action=inflacion_trimestral&anio=${anio}`
-  );
-  const dataInf = await resInf.json();
+  const historial = data.historial;
 
-  const inflacion = dataInf.inflacion || [];
-
-  renderKPIs(historial, inflacion);
-  renderGraficos(historial, inflacion);
+  renderKPIs(historial);
+  renderGraficos(historial);
 }
 
-function renderKPIs(data, inflacion) {
+// ================================
+// KPIs
+// ================================
+function renderKPIs(data) {
 
   const promedioGeneral =
     data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
 
-  const variacionActual = Number(data[data.length - 1].variacion);
-
-  const inflacionActual = inflacion.length
-    ? Number(inflacion[inflacion.length - 1].inflacion)
-    : null;
-
-  const brecha = inflacionActual !== null
-    ? Number((variacionActual - inflacionActual).toFixed(2))
-    : null;
+  const variacionActual = data[data.length - 1].variacion;
 
   let estado = "verde";
-  if (brecha !== null) {
-    if (brecha < -2) estado = "rojo";
-    else if (brecha < 0) estado = "amarillo";
-  }
+  if (variacionActual > 10) estado = "rojo";
+  else if (variacionActual > 5) estado = "amarillo";
 
   document.getElementById("kpis").innerHTML = `
     <div class="kpi">
-      <small>Promedio trimestral</small>
+      <small>Promedio</small>
       <h2>$ ${Math.round(promedioGeneral).toLocaleString("es-AR")}</h2>
     </div>
 
-    <div class="kpi">
-      <small>Variación último trimestre</small>
+    <div class="kpi ${estado}">
+      <small>Variación último período</small>
       <h2>${variacionActual > 0 ? "+" : ""}${variacionActual} %</h2>
     </div>
 
-    <div class="kpi ${estado}">
-      <small>Brecha vs inflación</small>
-      <h2>${brecha === null ? "—" : (brecha > 0 ? "+" : "") + brecha + " %"}</h2>
-    </div>
-
     <div class="kpi">
-      <small>Trimestres analizados</small>
+      <small>Períodos analizados</small>
       <h2>${data.length}</h2>
     </div>
   `;
 }
 
-function renderGraficos(data, inflacion) {
+// ================================
+// GRAFICOS
+// ================================
+function renderGraficos(data) {
 
   const labels = data.map(d => d.periodo);
 
@@ -199,30 +184,18 @@ function renderGraficos(data, inflacion) {
     }
   );
 
-  const datasets = [{
-    label: "% Variación tarifa",
-    data: data.map(d => d.variacion),
-    borderColor: "#4bc0c0",
-    tension: 0.3
-  }];
-
-  if (inflacion.length) {
-    datasets.push({
-      label: "Inflación trimestral",
-      data: labels.map(l => {
-        const f = inflacion.find(i => i.periodo === l);
-        return f ? f.inflacion : null;
-      }),
-      borderColor: "#ff5252",
-      borderDash: [6,6],
-      tension: 0.3
-    });
-  }
-
   chartVariacion = new Chart(
     document.getElementById("graficoVariacion"), {
       type: "line",
-      data: { labels, datasets }
+      data: {
+        labels,
+        datasets: [{
+          label: "% Variación",
+          data: data.map(d => d.variacion),
+          borderColor: "#4bc0c0",
+          tension: 0.3
+        }]
+      }
     }
   );
 }
