@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Dashboard Tarifas</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -12,22 +13,31 @@ body {
   color: #fff;
   padding: 30px;
 }
+
+h1 { margin-bottom: 5px; }
+.subtitulo { color: #aaa; margin-bottom: 25px; }
+
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
   gap: 20px;
   margin-bottom: 30px;
 }
+
 .kpi {
   background: #1a1d24;
   padding: 20px;
   border-radius: 12px;
 }
+.kpi small { color: #aaa; }
+.kpi h2 { margin: 10px 0 0; font-size: 26px; }
+
 .graficos {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+
 .grafico {
   background: #1a1d24;
   padding: 20px;
@@ -39,7 +49,7 @@ body {
 <body>
 
 <h1 style="color:#ff7a18">📊 Dashboard Ejecutivo</h1>
-<div id="detalle"></div>
+<div class="subtitulo" id="detalle"></div>
 
 <div class="kpis" id="kpis"></div>
 
@@ -55,18 +65,18 @@ body {
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
 
-// ===================
-// PARAMETROS
-// ===================
+// =====================
+// PARÁMETROS (CLAVE)
+// =====================
 const params = new URLSearchParams(window.location.search);
 const cliente  = params.get("cliente");
-const anio     = params.get("anio");
+const anio     = params.get("anio");     // ← SIN Ñ
 const servicio = params.get("servicio");
-const periodo  = params.get("periodo") || "trimestral";
+const periodo  = params.get("periodo");  // trimestral
 
-if (!cliente || !anio || !servicio) {
+if (!cliente || !anio || !servicio || !periodo) {
   alert("Faltan parámetros");
   throw new Error("Parámetros incompletos");
 }
@@ -74,68 +84,67 @@ if (!cliente || !anio || !servicio) {
 document.getElementById("detalle").textContent =
   `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio}`;
 
-// ===================
+// =====================
 // CARGA
-// ===================
-cargar();
+// =====================
+cargarDashboard();
 
-async function cargar() {
+async function cargarDashboard() {
+
   const url =
-    `${API}?action=historial` +
+    `${API_URL}?action=historial` +
     `&cliente=${encodeURIComponent(cliente)}` +
     `&anio=${encodeURIComponent(anio)}` +
     `&servicio=${encodeURIComponent(servicio)}` +
     `&periodo=${encodeURIComponent(periodo)}`;
 
   const res = await fetch(url);
-  const json = await res.json();
+  const data = await res.json();
 
-  console.log("Respuesta API:", json);
+  console.log("RESPUESTA API:", data);
 
-  if (!json.historial || json.historial.length === 0) {
-  alert("No hay datos para mostrar");
-  return;
-}
+  if (!data.historial || data.historial.length === 0) {
+    alert("No hay datos de historial");
+    return;
+  }
 
-
-  const historial = calcularVariaciones(json.historial);
+  const historial = calcularVariacion(data.historial);
 
   renderKPIs(historial);
   renderGraficos(historial);
 }
 
-// ===================
-// CALCULO VARIACION
-// ===================
-function calcularVariaciones(data) {
-  return data.map((d, i) => {
-    if (i === 0) {
-      return { ...d, variacion: 0 };
-    }
-    const prev = data[i - 1].promedio;
-    const variacion = ((d.promedio - prev) / prev) * 100;
-    return { ...d, variacion: Number(variacion.toFixed(2)) };
+// =====================
+// VARIACIÓN
+// =====================
+function calcularVariacion(arr) {
+  return arr.map((d, i) => {
+    if (i === 0) return { ...d, variacion: 0 };
+    const prev = arr[i - 1].promedio;
+    const v = ((d.promedio - prev) / prev) * 100;
+    return { ...d, variacion: Number(v.toFixed(2)) };
   });
 }
 
-// ===================
+// =====================
 // KPIS
-// ===================
+// =====================
 function renderKPIs(data) {
-  const ultimo = data.at(-1);
 
   const promedio =
-    data.reduce((a,b)=>a + b.promedio, 0) / data.length;
+    data.reduce((a,b)=>a+b.promedio,0) / data.length;
+
+  const ultimaVar = data.at(-1).variacion;
 
   document.getElementById("kpis").innerHTML = `
     <div class="kpi">
-      <small>Promedio general</small>
+      <small>Promedio trimestral</small>
       <h2>$ ${Math.round(promedio).toLocaleString("es-AR")}</h2>
     </div>
 
     <div class="kpi">
       <small>Variación último trimestre</small>
-      <h2>${ultimo.variacion > 0 ? "+" : ""}${ultimo.variacion}%</h2>
+      <h2>${ultimaVar > 0 ? "+" : ""}${ultimaVar} %</h2>
     </div>
 
     <div class="kpi">
@@ -145,15 +154,17 @@ function renderKPIs(data) {
   `;
 }
 
-// ===================
-// GRAFICOS
-// ===================
+// =====================
+// GRÁFICOS
+// =====================
 function renderGraficos(data) {
 
-  new Chart(document.getElementById("graficoPromedios"), {
+  const labels = data.map(d => d.periodo);
+
+  new Chart(graficoPromedios, {
     type: "bar",
     data: {
-      labels: data.map(d => d.periodo),
+      labels,
       datasets: [{
         label: "Promedio",
         data: data.map(d => d.promedio),
@@ -162,10 +173,10 @@ function renderGraficos(data) {
     }
   });
 
-  new Chart(document.getElementById("graficoVariacion"), {
+  new Chart(graficoVariacion, {
     type: "line",
     data: {
-      labels: data.map(d => d.periodo),
+      labels,
       datasets: [{
         label: "% Variación",
         data: data.map(d => d.variacion),
@@ -179,4 +190,3 @@ function renderGraficos(data) {
 
 </body>
 </html>
-c
