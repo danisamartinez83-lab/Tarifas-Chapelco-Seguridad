@@ -92,8 +92,8 @@ cargarDashboard();
 async function cargarDashboard() {
 
   const url =
-    `${API_URL}?action=historial` +
-    `&cliente=${encodeURIComponent(cliente)}` +
+    `${API_URL}` +
+    `?cliente=${encodeURIComponent(cliente)}` +
     `&anio=${encodeURIComponent(anio)}` +
     `&servicio=${encodeURIComponent(servicio)}` +
     `&periodo=${encodeURIComponent(periodo)}`;
@@ -101,12 +101,12 @@ async function cargarDashboard() {
   const res = await fetch(url);
   const data = await res.json();
 
-  console.log("RESPUESTA API:", data);
+  console.log(data);
 
-  if (!data.historial || data.historial.length === 0) {
-    alert("No hay datos de historial");
-    return;
-  }
+if (!data.historial || data.historial.length === 0) {
+    alert("No hay datos para los parámetros seleccionados.");
+    throw new Error("No hay datos");
+  } 
 
   const historial = calcularVariacion(data.historial);
 
