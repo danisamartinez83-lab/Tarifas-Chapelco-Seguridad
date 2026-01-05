@@ -1,83 +1,112 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
+<meta charset="UTF-8">
+<title>Dashboard Ejecutivo</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    /* ===============================
-       TEMA OSCURO
-    ================================ */
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-      background-color: #0f1115;
-      color: #eaeaea;
-    }
+<style>
+/* ====== TEMA OSCURO ====== */
+body {
+  font-family: Arial, sans-serif;
+  background: #0f1115;
+  color: #ffffff;
+  margin: 0;
+  padding: 30px;
+}
 
-    h2 {
-      margin-bottom: 5px;
-      color: #ff7a18;
-    }
+h1 {
+  margin: 0;
+  color: #ff7a18;
+}
 
-    #subtitulo {
-      color: #b0b0b0;
-      margin-bottom: 20px;
-    }
+.subtitulo {
+  color: #aaa;
+  margin-bottom: 25px;
+}
 
-    #error {
-      color: #ff5252;
-      font-weight: bold;
-      margin-top: 20px;
-    }
+/* ====== KPIs ====== */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
 
-    /* Contenedor visual del gráfico */
-    canvas {
-      background-color: #171a21;
-      padding: 20px;
-      border-radius: 14px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-    }
-  </style>
+.kpi {
+  background: #1a1d24;
+  padding: 20px;
+  border-radius: 14px;
+  border-left: 6px solid #ff7a18;
+}
+
+.kpi small {
+  color: #aaa;
+  font-size: 13px;
+}
+
+.kpi h2 {
+  margin: 8px 0 0;
+  font-size: 26px;
+  color: #ffb26b;
+}
+
+/* ====== GRAFICO ====== */
+.grafico {
+  background: #1a1d24;
+  padding: 25px;
+  border-radius: 14px;
+}
+
+canvas {
+  margin-top: 10px;
+}
+</style>
 </head>
 
 <body>
 
-<h2>Historial Trimestral</h2>
-<p id="subtitulo"></p>
+<h1>📊 Dashboard Ejecutivo</h1>
+<div class="subtitulo" id="detalle"></div>
 
-<canvas id="grafico" height="120"></canvas>
+<div class="kpis" id="kpis"></div>
 
-<div id="error"></div>
+<div class="grafico">
+  <h3 style="margin:0;color:#ff7a18;">Evolución trimestral de tarifa</h3>
+  <canvas id="graficoTarifa" height="120"></canvas>
+</div>
 
 <script>
 /* ===============================
-   1. LEER PARÁMETROS URL
+   PARAMETROS
 ================================ */
 const params = new URLSearchParams(window.location.search);
-
 const cliente  = params.get("cliente");
 const anio     = params.get("anio");
 const servicio = params.get("servicio");
 const periodo  = params.get("periodo");
 
 if (!cliente || !anio || !servicio || !periodo) {
-  document.getElementById("error").innerText =
-    "Faltan parámetros en la URL.";
-  throw new Error("Parámetros incompletos");
+  alert("Faltan parámetros para el dashboard");
 }
 
-document.getElementById("subtitulo").innerText =
+document.getElementById("detalle").innerText =
   `${cliente} · ${servicio} · ${anio} · ${periodo}`;
 
 /* ===============================
-   2. LLAMAR API
+   API
 ================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwFm-T83T1uVn-KvEhOfxY51tGMR5HZLprOV42D04v64Nidp-fIq7EPY01uD13rlkKAag/exec";
+const API_URL =
+"https://script.google.com/macros/s/AKfycbwFm-T83T1uVn-KvEhOfxY51tGMR5HZLprOV42D04v64Nidp-fIq7EPY01uD13rlkKAag/exec";
 
+let chart;
+
+/* ===============================
+   CARGA
+================================ */
 async function cargar() {
+
   const url =
     `${API_URL}?action=historial` +
     `&cliente=${encodeURIComponent(cliente)}` +
@@ -88,60 +117,88 @@ async function cargar() {
   const res = await fetch(url);
   const data = await res.json();
 
-  console.log("Respuesta API:", data);
-
   if (!data.historial || data.historial.length === 0) {
-    document.getElementById("error").innerText =
-      "No hay datos de historial para los filtros seleccionados.";
+    alert("No hay datos de historial");
     return;
   }
 
+  renderKPIs(data.historial);
   renderGrafico(data.historial);
 }
 
 /* ===============================
-   3. GRAFICO
+   KPIs
+================================ */
+function renderKPIs(historial) {
+
+  const ultimo = historial[historial.length - 1];
+
+  const tarifaActual = ultimo.promedio;
+  const variacionUlt = ultimo.variacion;
+
+  const variacionAcum =
+    ((ultimo.promedio - historial[0].promedio) /
+      historial[0].promedio) * 100;
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi">
+      <small>Tarifa actual</small>
+      <h2>$ ${Math.round(tarifaActual).toLocaleString("es-AR")}</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Variación último trimestre</small>
+      <h2>${variacionUlt > 0 ? "+" : ""}${variacionUlt} %</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Variación acumulada</small>
+      <h2>${variacionAcum.toFixed(2)} %</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Trimestres analizados</small>
+      <h2>${historial.length}</h2>
+    </div>
+  `;
+}
+
+/* ===============================
+   GRAFICO
 ================================ */
 function renderGrafico(historial) {
 
   const labels = historial.map(h => h.periodo);
   const valores = historial.map(h => h.promedio);
 
-  new Chart(document.getElementById("grafico"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Promedio trimestral",
-        data: valores,
-        borderColor: "#ff7a18",
-        backgroundColor: "rgba(255,122,24,0.15)",
-        pointBackgroundColor: "#ff7a18",
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          labels: {
-            color: "#eaeaea"
-          }
-        }
+  if (chart) chart.destroy();
+
+  chart = new Chart(
+    document.getElementById("graficoTarifa"),
+    {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Tarifa promedio",
+          data: valores,
+          borderColor: "#ff7a18",
+          backgroundColor: "rgba(255,122,24,0.15)",
+          tension: 0.35,
+          fill: true
+        }]
       },
-      scales: {
-        x: {
-          ticks: { color: "#cfcfcf" },
-          grid: { color: "#222" }
+      options: {
+        plugins: {
+          legend: { labels: { color: "#fff" } }
         },
-        y: {
-          ticks: { color: "#cfcfcf" },
-          grid: { color: "#222" }
+        scales: {
+          x: { ticks: { color: "#aaa" } },
+          y: { ticks: { color: "#aaa" } }
         }
       }
     }
-  });
+  );
 }
 
 cargar();
