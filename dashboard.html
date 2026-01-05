@@ -86,31 +86,24 @@ const servicio = params.get("servicio");
 document.getElementById("detalle").innerText =
   `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio}`; 
 
-  
+
 // =======================
 // CARGA
 // =======================
-cargar();
-
-async function cargar() {
-
-  const url =
-    `${API_URL}?action=historial` +
-    `&cliente=${encodeURIComponent(cliente)}` +
+cargarDatos();  
+async function cargarDatos() {
+  const response = await fetch(
+    `${API_URL}?cliente=${encodeURIComponent(cliente)}` +
     `&anio=${encodeURIComponent(anio)}` +
-    `&servicio=${encodeURIComponent(servicio)}` +
-    `&periodo=trimestral`;
+    `&servicio=${encodeURIComponent(servicio)}`
+  );
+  const json = await response.json();
 
-  const res = await fetch(url);
-  const json = await res.json();
-
-  console.log("API:", json);
-
-  if (!json.historial || json.historial.length === 0) {
-    alert("No hay datos de historial");
+if (!json.historial || json.historial.length === 0) {
+    alert("No se encontraron datos para los parámetros seleccionados.");
     return;
-  }
-
+  } 
+  
   // 🔧 CALCULO VARIACIONES ACA
   const data = json.historial.map((d, i, arr) => {
     let variacion = 0;
