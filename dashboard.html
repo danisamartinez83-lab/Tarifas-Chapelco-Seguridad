@@ -15,8 +15,14 @@ body {
   padding: 30px;
 }
 
-h1 { margin-bottom: 5px; }
-.subtitulo { color: #aaa; margin-bottom: 25px; }
+h1 {
+  margin-bottom: 5px;
+}
+
+.subtitulo {
+  color: #aaa;
+  margin-bottom: 25px;
+}
 
 .kpis {
   display: grid;
@@ -30,8 +36,15 @@ h1 { margin-bottom: 5px; }
   padding: 20px;
   border-radius: 12px;
 }
-.kpi small { color: #aaa; }
-.kpi h2 { margin: 10px 0 0; font-size: 26px; }
+
+.kpi small {
+  color: #aaa;
+}
+
+.kpi h2 {
+  margin: 10px 0 0;
+  font-size: 26px;
+}
 
 .kpi.verde { border-left: 6px solid #4caf50; }
 .kpi.amarillo { border-left: 6px solid #ff9800; }
@@ -75,7 +88,7 @@ button {
     <canvas id="graficoPromedios"></canvas>
   </div>
   <div class="grafico">
-    <h3>Variación vs Inflación (%)</h3>
+    <h3>Variación trimestral (%)</h3>
     <canvas id="graficoVariacion"></canvas>
   </div>
 </div>
@@ -104,24 +117,19 @@ document.getElementById("detalle").textContent =
 cargarDashboard();
 
 async function cargarDashboard() {
-
-  const resHist = await fetch(
+  const res = await fetch(
     `${API_URL}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=${periodo}`
   );
-  const dataHist = await resHist.json();
 
-  const resInf = await fetch(
-    `${API_URL}?action=inflacion_trimestral&año=${anio}`
-  );
-  const dataInf = await resInf.json();
-
-  if (!dataHist.historial || dataHist.historial.length === 0) {
+  const data = await res.json();
+  if (!data.historial || data.historial.length === 0) {
     alert("No hay datos para mostrar");
     return;
   }
 
-  renderKPIs(dataHist.historial);
-  renderGraficos(dataHist.historial, dataInf.inflacion || []);
+  const historial = data.historial;
+  renderKPIs(historial);
+  renderGraficos(historial);
 }
 
 function renderKPIs(data) {
@@ -152,14 +160,8 @@ function renderKPIs(data) {
   `;
 }
 
-function renderGraficos(historial, inflacion) {
-
-  const labels = historial.map(h => h.periodo);
-  const variacionTarifa = historial.map(h => h.variacion);
-
-  const inflacionMap = {};
-  inflacion.forEach(i => inflacionMap[i.periodo] = i.inflacion);
-  const inflacionData = labels.map(p => inflacionMap[p] ?? null);
+function renderGraficos(data) {
+  const labels = data.map(d => d.periodo);
 
   if (chartPromedios) chartPromedios.destroy();
   if (chartVariacion) chartVariacion.destroy();
@@ -170,7 +172,7 @@ function renderGraficos(historial, inflacion) {
       labels,
       datasets: [{
         label: "Promedio",
-        data: historial.map(h => h.promedio),
+        data: data.map(d => d.promedio),
         backgroundColor: "#f0822d"
       }]
     }
@@ -180,21 +182,12 @@ function renderGraficos(historial, inflacion) {
     type: "line",
     data: {
       labels,
-      datasets: [
-        {
-          label: "Variación tarifa (%)",
-          data: variacionTarifa,
-          borderColor: "#4bc0c0",
-          tension: 0.3
-        },
-        {
-          label: "Inflación (%)",
-          data: inflacionData,
-          borderColor: "#ff9800",
-          borderDash: [6,6],
-          tension: 0.3
-        }
-      ]
+      datasets: [{
+        label: "% Variación",
+        data: data.map(d => d.variacion),
+        borderColor: "#4bc0c0",
+        tension: 0.3
+      }]
     }
   });
 }
@@ -202,6 +195,7 @@ function renderGraficos(historial, inflacion) {
 
 </body>
 </html>
+
 
 
 
