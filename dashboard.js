@@ -9,7 +9,7 @@ let chartVariacion = null;
 // =====================
 const params = new URLSearchParams(window.location.search);
 const cliente = params.get("cliente");
-const anio = params.get("año");
+const anio = params.get("anio");
 const servicio = params.get("servicio");
 
 // =====================
