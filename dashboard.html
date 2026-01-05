@@ -109,11 +109,11 @@ async function cargar() {
   const res = await fetch(url);
   const json = await res.json();
 
-  if (!json.historial || json.historial.length === 0) {
-    alert("No hay datos de historial");
-    console.log("Respuesta API:", json);
-    return;
-  }
+ if (!json || Object.keys(json).length === 0) {
+  alert("Respuesta vacía del API");
+  return;
+}
+
 
   renderKPIs(json.historial);
   renderGraficos(json.historial);
