@@ -92,10 +92,11 @@ async function cargar() {
 
   console.log("Respuesta API:", json);
 
-  if (!json.historial || json.historial.length < 2) {
-    alert("No hay suficientes datos");
-    return;
-  }
+  if (!json.historial || json.historial.length === 0) {
+  alert("No hay datos para mostrar");
+  return;
+}
+
 
   const historial = calcularVariaciones(json.historial);
 
