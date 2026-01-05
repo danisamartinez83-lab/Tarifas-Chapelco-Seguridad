@@ -15,8 +15,14 @@ body {
   padding: 30px;
 }
 
-h1 { margin-bottom: 5px; }
-.subtitulo { color: #aaa; margin-bottom: 25px; }
+h1 {
+  margin-bottom: 5px;
+}
+
+.subtitulo {
+  color: #aaa;
+  margin-bottom: 25px;
+}
 
 .kpis {
   display: grid;
@@ -31,8 +37,14 @@ h1 { margin-bottom: 5px; }
   border-radius: 12px;
 }
 
-.kpi small { color: #aaa; }
-.kpi h2 { margin: 10px 0 0; font-size: 26px; }
+.kpi small {
+  color: #aaa;
+}
+
+.kpi h2 {
+  margin: 10px 0 0;
+  font-size: 26px;
+}
 
 .kpi.verde { border-left: 6px solid #4caf50; }
 .kpi.amarillo { border-left: 6px solid #ff9800; }
@@ -48,6 +60,17 @@ h1 { margin-bottom: 5px; }
   background: #1a1d24;
   padding: 20px;
   border-radius: 12px;
+}
+
+button {
+  background: #f0822d;
+  border: none;
+  color: #000;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 25px;
 }
 </style>
 </head>
@@ -70,66 +93,48 @@ h1 { margin-bottom: 5px; }
   </div>
 </div>
 
+<button onclick="window.close()">Cerrar dashboard</button>
+
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
 
-let chartPromedios;
-let chartVariacion;
+let chartPromedios = null;
+let chartVariacion = null;
 
-// =======================
-// PARAMETROS
-// =======================
 const params = new URLSearchParams(window.location.search);
-const cliente = params.get("cliente");  
-const anio = params.get("anio");
+const cliente = params.get("cliente");
+const anio = params.get("año");
 const servicio = params.get("servicio");
-document.getElementById("detalle").innerText =
-  `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio}`; 
+const periodo = params.get("periodo");
 
-
-// =======================
-// CARGA
-// =======================
-cargarDatos();  
-async function cargarDatos() {
-  const response = await fetch(
-    `${API_URL}?cliente=${encodeURIComponent(cliente)}` +
-    `&anio=${encodeURIComponent(anio)}` +
-    `&servicio=${encodeURIComponent(servicio)}`
-  );
-  const json = await response.json();
-
-if (!json.historial || json.historial.length === 0) {
-    alert("No se encontraron datos para los parámetros seleccionados.");
-    return;
-  } 
-  
-  // 🔧 CALCULO VARIACIONES ACA
-  const data = json.historial.map((d, i, arr) => {
-    let variacion = 0;
-    if (i > 0) {
-      variacion = Number(
-        (((d.promedio - arr[i-1].promedio) / arr[i-1].promedio) * 100).toFixed(2)
-      );
-    }
-    return {
-      periodo: d.periodo,
-      promedio: d.promedio,
-      variacion
-    };
-  });
-
-  renderKPIs(data);
-  renderGraficos(data);
+if (!cliente || !anio || !servicio || !periodo) {
+  alert("Faltan parámetros para el dashboard");
 }
 
-// =======================
-// KPIS
-// =======================
-function renderKPIs(data) {
+document.getElementById("detalle").textContent =
+  `Cliente: ${cliente} | Año: ${anio} | Servicio: ${servicio} | Período: ${periodo}`;
 
+cargarDashboard();
+
+async function cargarDashboard() {
+  const res = await fetch(
+    `${API_URL}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=${periodo}`
+  );
+
+  const data = await res.json();
+  if (!data.historial || data.historial.length === 0) {
+    alert("No hay datos para mostrar");
+    return;
+  }
+
+  const historial = data.historial;
+  renderKPIs(historial);
+  renderGraficos(historial);
+}
+
+function renderKPIs(data) {
   const promedioGeneral =
-    data.reduce((a,b)=>a + b.promedio, 0) / data.length;
+    data.reduce((a,b)=>a + Number(b.promedio), 0) / data.length;
 
   const variacionActual = data[data.length - 1].variacion;
 
@@ -149,58 +154,44 @@ function renderKPIs(data) {
     </div>
 
     <div class="kpi">
-      <small>Trimestres</small>
+      <small>Trimestres analizados</small>
       <h2>${data.length}</h2>
     </div>
   `;
 }
 
-// =======================
-// GRAFICOS
-// =======================
 function renderGraficos(data) {
-
   const labels = data.map(d => d.periodo);
 
   if (chartPromedios) chartPromedios.destroy();
   if (chartVariacion) chartVariacion.destroy();
 
-  chartPromedios = new Chart(
-    document.getElementById("graficoPromedios"),
-    {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{
-          label: "Promedio",
-          data: data.map(d => d.promedio),
-          backgroundColor: "#f0822d"
-        }]
-      }
+  chartPromedios = new Chart(document.getElementById("graficoPromedios"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Promedio",
+        data: data.map(d => d.promedio),
+        backgroundColor: "#f0822d"
+      }]
     }
-  );
+  });
 
-  chartVariacion = new Chart(
-    document.getElementById("graficoVariacion"),
-    {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "% Variación",
-          data: data.map(d => d.variacion),
-          borderColor: "#4bc0c0",
-          tension: 0.3
-        }]
-      }
+  chartVariacion = new Chart(document.getElementById("graficoVariacion"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "% Variación",
+        data: data.map(d => d.variacion),
+        borderColor: "#4bc0c0",
+        tension: 0.3
+      }]
     }
-  );
+  });
 }
 </script>
 
 </body>
 </html>
-
-
-
-
