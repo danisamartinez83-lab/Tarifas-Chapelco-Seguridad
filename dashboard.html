@@ -109,14 +109,30 @@ async function cargar() {
   const res = await fetch(url);
   const json = await res.json();
 
- if (!json || Object.keys(json).length === 0) {
-  alert("Respuesta vacía del API");
-  return;
-}
+  console.log("API:", json);
 
+  if (!json.historial || json.historial.length === 0) {
+    alert("No hay datos de historial");
+    return;
+  }
 
-  renderKPIs(json.historial);
-  renderGraficos(json.historial);
+  // 🔧 CALCULO VARIACIONES ACA
+  const data = json.historial.map((d, i, arr) => {
+    let variacion = 0;
+    if (i > 0) {
+      variacion = Number(
+        (((d.promedio - arr[i-1].promedio) / arr[i-1].promedio) * 100).toFixed(2)
+      );
+    }
+    return {
+      periodo: d.periodo,
+      promedio: d.promedio,
+      variacion
+    };
+  });
+
+  renderKPIs(data);
+  renderGraficos(data);
 }
 
 // =======================
@@ -130,8 +146,8 @@ function renderKPIs(data) {
   const variacionActual = data[data.length - 1].variacion;
 
   let estado = "verde";
-  if (variacionActual < 0) estado = "rojo";
-  else if (variacionActual < 2) estado = "amarillo";
+  if (variacionActual > 10) estado = "rojo";
+  else if (variacionActual > 5) estado = "amarillo";
 
   document.getElementById("kpis").innerHTML = `
     <div class="kpi">
