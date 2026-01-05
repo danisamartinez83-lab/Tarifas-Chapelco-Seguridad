@@ -110,10 +110,22 @@ async function cargarDashboard() {
   );
   const dataHist = await resHist.json();
 
-  if (!dataHist.historial || dataHist.historial.length === 0) {
-    alert("No hay datos de historial");
-    return;
-  }
+if (dataHist.error) {
+  alert("Error historial: " + dataHist.error);
+  return;
+}
+
+if (!Array.isArray(dataHist.historial)) {
+  alert("Respuesta inválida del historial");
+  console.error(dataHist);
+  return;
+}
+
+if (dataHist.historial.length === 0) {
+  alert("No hay datos de historial para los filtros seleccionados");
+  return;
+}
+
 
   const resInf = await fetch(
     `${API_URL}?action=inflacion_trimestral&anio=${anio}`
