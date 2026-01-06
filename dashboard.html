@@ -102,13 +102,23 @@ async function cargar() {
     return;
   }
 
-  const mapaInflacion = {};
-  inflacion.forEach(i => mapaInflacion[i.periodo] = i.inflacion);
+ const mapaInflacion = {};
+inflacion.forEach(i => mapaInflacion[i.periodo] = i.inflacion);
 
-  historial.forEach(h => {
-    h.inflacion = mapaInflacion[h.periodo] ?? 0;
-    h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
-  });
+historial.forEach(h => {
+
+  const variacionPct =
+    Math.abs(h.variacion) < 1 ? h.variacion * 100 : h.variacion;
+
+  const inflacionPct =
+    Math.abs(mapaInflacion[h.periodo]) < 1
+      ? mapaInflacion[h.periodo] * 100
+      : mapaInflacion[h.periodo];
+
+  h.variacion = Number(variacionPct.toFixed(2));
+  h.inflacion = Number(inflacionPct.toFixed(2));
+  h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
+});
 
   renderKPIs(historial);
   renderGrafico(historial);
