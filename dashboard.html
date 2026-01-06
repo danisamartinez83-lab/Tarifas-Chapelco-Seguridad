@@ -57,6 +57,37 @@ h1 {
   padding: 25px;
   border-radius: 14px;
 }
+/* ==========================
+   COLORES KPI DECISIÓN
+========================== */
+
+.kpi {
+  background: #1a1d24;
+  padding: 18px;
+  border-radius: 12px;
+  border-left: 6px solid #444;
+}
+
+.kpi h2 {
+  margin: 8px 0 0;
+  color: #ff7a18;
+}
+
+.kpi small {
+  color: #aaa;
+}
+
+.kpi.verde {
+  border-left-color: #4caf50;
+}
+
+.kpi.amarillo {
+  border-left-color: #ff9800;
+}
+
+.kpi.rojo {
+  border-left-color: #f44336;
+}
 </style>
 </head>
 
@@ -123,10 +154,16 @@ historial.forEach(h => {
   renderKPIs(historial);
   renderGrafico(historial);
 }
+function estadoBrecha(brecha) {
+  if (brecha >= 1.5) return "verde";
+  if (brecha <= -1.5) return "rojo";
+  return "amarillo";
+}
 
 function renderKPIs(hist) {
 
   const ultimo = hist.at(-1);
+const color = estadoBrecha(ultimo.brecha);
 
   document.getElementById("kpis").innerHTML = `
     <div class="kpi">
@@ -148,6 +185,11 @@ function renderKPIs(hist) {
       <small>Brecha vs inflación</small>
       <h2>${ultimo.brecha}%</h2>
     </div>
+    <div class="kpi ${color}">
+  <small>Brecha vs inflación</small>
+  <h2>${ultimo.brecha > 0 ? "+" : ""}${ultimo.brecha}%</h2>
+</div>
+
   `;
 }
 
