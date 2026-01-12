@@ -346,38 +346,83 @@ async function cargarHistorial() {
 
 function renderGraficos(historial) {
   const labels = historial.map(h => h.periodo);
+if (chartPromedio) chartPromedio.destroy();
 
-  if (chartPromedio) chartPromedio.destroy();
-  chartPromedio = new Chart(graficoHistorial, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Promedio de tarifa",
-        data: historial.map(h => h.promedio),
-        borderColor: "#ff7a18",
-        backgroundColor: "rgba(255,122,24,0.2)",
-        fill: true,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
+chartPromedio = new Chart(graficoHistorial, {
+  type: "line",
+  data: {
+    labels,
+    datasets: [{
+      label: "Promedio de tarifa",
+      data: historial.map(h => h.promedio),
+      borderColor: "#ff7a18",
+      backgroundColor: "rgba(255,122,24,0.2)",
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          font: { size: 12 }
         }
-      }]
+      }
+    },
+    scales: {
+      x: {
+        ticks: {
+          font: { size: 10 }
+        }
+      },
+      y: {
+        ticks: {
+          font: { size: 10 }
+        }
+      }
     }
-  });
+  }
+});
 
-  if (chartVariacion) chartVariacion.destroy();
-  chartVariacion = new Chart(graficoVariacion, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Variación %",
-        data: historial.map(h => h.variacion),
-        backgroundColor: "#4caf50"
-      }]
+
+ if (chartVariacion) chartVariacion.destroy();
+
+chartVariacion = new Chart(graficoVariacion, {
+  type: "bar",
+  data: {
+    labels,
+    datasets: [{
+      label: "Variación %",
+      data: historial.map(h => h.variacion),
+      backgroundColor: "#4caf50"
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          font: { size: 12 }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: {
+          font: { size: 10 }
+        }
+      },
+      y: {
+        ticks: {
+          font: { size: 10 }
+        }
+      }
     }
-  });
+  }
+});
 }
 
 function abrirDashboard() {
