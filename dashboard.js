@@ -1,5 +1,5 @@
 const API =
-  "https://script.google.com/macros/s/AKfycbw9ugA1sV5nywFHIFcekwi3vx_ziGuQX5CLBcX7k5ew93eJx-6ICVnxELJuwnwGphHuqA/exec";
+  "https://script.google.com/macros/s/AKfycbz-mwhaLXEjKsmxe-47_y-wFm6oq-rpGn9Gqe7UmyTZJ21tUW42fGn1bVQzZSzMq8cH/exec";
 
 let chartPromedios = null;
 let chartVariacion = null;
