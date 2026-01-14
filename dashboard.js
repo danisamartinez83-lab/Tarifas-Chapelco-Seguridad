@@ -230,22 +230,4 @@ function renderGraficos(historial) {
       ]
     }
   });
-      async function cargarAnalisisAnual() {
-
-  const res = await fetch(
-    `${API}?action=analisis_anual` +
-    `&cliente=${encodeURIComponent(cliente)}` +
-    `&año=${encodeURIComponent(anio)}` +
-    `&servicio=${encodeURIComponent(servicio)}`
-  );
-
-  const data = await res.json();
-
-  if (data.error) {
-    alert(data.error);
-    return;
-  }
-
-  renderAnalisisAnual(data);
-    }
-  }
+}

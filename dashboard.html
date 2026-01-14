@@ -237,6 +237,50 @@ function renderGrafico(hist) {
     }
   });
 }
+async function cargarAnalisisAnual() {
+
+  const res = await fetch(
+    `${API}?action=analisis_anual` +
+    `&cliente=${encodeURIComponent(cliente)}` +
+    `&año=${encodeURIComponent(anio)}` +
+    `&servicio=${encodeURIComponent(servicio)}`
+  );
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  // reutilizamos el contenedor de KPIs
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi">
+      <small>Tarifa Enero</small>
+      <h2>$ ${Math.round(data.tarifa_enero).toLocaleString("es-AR")}</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Tarifa Diciembre</small>
+      <h2>$ ${Math.round(data.tarifa_diciembre).toLocaleString("es-AR")}</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Variación anual</small>
+      <h2>${data.variacion_anual.toFixed(2)}%</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Inflación anual</small>
+      <h2>${data.inflacion_anual.toFixed(2)}%</h2>
+    </div>
+
+    <div class="kpi ${data.brecha_anual >= 0 ? "verde" : "rojo"}">
+      <small>Brecha anual</small>
+      <h2>${data.brecha_anual.toFixed(2)}%</h2>
+    </div>
+  `;
+}
 
 cargar();
 </script>
