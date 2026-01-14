@@ -52,6 +52,24 @@ async function cargarDashboard() {
     alert("Error cargando el dashboard");
   }
 }
+async function cargarAnalisisAnual() {
+
+  const res = await fetch(
+    `${API}?action=analisis_anual` +
+    `&cliente=${encodeURIComponent(cliente)}` +
+    `&año=${encodeURIComponent(anio)}` +
+    `&servicio=${encodeURIComponent(servicio)}`
+  );
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  renderAnalisisAnual(data);
+}
 
 // =====================
 // KPIs
@@ -109,6 +127,40 @@ function calcularKPIs(historial, inflacion) {
   ];
 
   renderKPIs(kpis);
+}
+function renderAnalisisAnual(d) {
+
+  const colorBrecha =
+    d.brecha_anual < 0 ? "rojo" :
+    d.brecha_anual < 5 ? "amarillo" :
+    "verde";
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi">
+      <small>Tarifa Enero</small>
+      <h2>$ ${d.tarifa_enero.toLocaleString("es-AR")}</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Tarifa Diciembre</small>
+      <h2>$ ${d.tarifa_diciembre.toLocaleString("es-AR")}</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Variación anual tarifa</small>
+      <h2>${d.variacion_anual.toFixed(2)}%</h2>
+    </div>
+
+    <div class="kpi">
+      <small>Inflación anual</small>
+      <h2>${d.inflacion_anual.toFixed(2)}%</h2>
+    </div>
+
+    <div class="kpi ${colorBrecha}">
+      <small>Brecha anual</small>
+      <h2>${d.brecha_anual.toFixed(2)}%</h2>
+    </div>
+  `;
 }
 
 // =====================
@@ -174,6 +226,24 @@ function renderGraficos(historial) {
           borderWidth: 2,
           tension: 0.3
         }
+        async function cargarAnalisisAnual() {
+
+  const res = await fetch(
+    `${API}?action=analisis_anual` +
+    `&cliente=${encodeURIComponent(cliente)}` +
+    `&año=${encodeURIComponent(anio)}` +
+    `&servicio=${encodeURIComponent(servicio)}`
+  );
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  renderAnalisisAnual(data);
+}
       ]
     }
   });

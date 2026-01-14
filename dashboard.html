@@ -102,6 +102,16 @@ h1 {
   <h3 style="color:#ff7a18;margin:0">Tarifa vs Inflación</h3>
   <canvas id="grafico" height="120"></canvas>
 </div>
+<div class="acciones-dashboard">
+  <button class="secondary" onclick="cargarAnalisisAnual()">
+    Análisis anual
+  </button>
+
+  <button class="secondary" onclick="cargarDashboard()">
+    Ver análisis trimestral
+  </button>
+</div>
+
 
 <script>
 const params = new URLSearchParams(window.location.search);
