@@ -88,6 +88,37 @@ h1 {
 .kpi.rojo {
   border-left-color: #f44336;
 }
+.acciones-dashboard {
+  display: flex;
+  gap: 12px;
+  margin: 25px 0;
+  flex-wrap: wrap;
+}
+
+.acciones-dashboard button {
+  background: #1a1d24;
+  color: #fff;
+  border: 1px solid #333;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.acciones-dashboard button:hover {
+  background: #ff7a18;
+  color: #111;
+  border-color: #ff7a18;
+}
+
+.acciones-dashboard button.activo {
+  background: #ff7a18;
+  color: #111;
+  border-color: #ff7a18;
+  font-weight: bold;
+}
+
 </style>
 </head>
 
@@ -103,14 +134,15 @@ h1 {
   <canvas id="grafico" height="120"></canvas>
 </div>
 <div class="acciones-dashboard">
-  <button class="secondary" onclick="cargarAnalisisAnual()">
-    Análisis anual
+  <button id="btnTrimestral" onclick="cargarDashboard()">
+    📈 Análisis trimestral
   </button>
 
-  <button class="secondary" onclick="cargarDashboard()">
-    Ver análisis trimestral
+  <button id="btnAnual" onclick="cargarAnalisisAnual()">
+    📊 Análisis anual
   </button>
 </div>
+
 
 
 <script>

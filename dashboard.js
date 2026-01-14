@@ -27,6 +27,10 @@ window.onload = () => {
 // DASHBOARD
 // =====================
 async function cargarDashboard() {
+
+  document.getElementById("btnTrimestral")?.classList.add("activo");
+  document.getElementById("btnAnual")?.classList.remove("activo");
+
   try {
     const [histRes, inflRes] = await Promise.all([
       fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`),
@@ -52,7 +56,11 @@ async function cargarDashboard() {
     alert("Error cargando el dashboard");
   }
 }
+
 async function cargarAnalisisAnual() {
+
+  document.getElementById("btnAnual")?.classList.add("activo");
+  document.getElementById("btnTrimestral")?.classList.remove("activo");
 
   const res = await fetch(
     `${API}?action=analisis_anual` +
