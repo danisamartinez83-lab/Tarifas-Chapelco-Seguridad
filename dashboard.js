@@ -226,7 +226,11 @@ function renderGraficos(historial) {
           borderWidth: 2,
           tension: 0.3
         }
-        async function cargarAnalisisAnual() {
+        
+      ]
+    }
+  });
+      async function cargarAnalisisAnual() {
 
   const res = await fetch(
     `${API}?action=analisis_anual` +
@@ -243,8 +247,5 @@ function renderGraficos(historial) {
   }
 
   renderAnalisisAnual(data);
-}
-      ]
     }
-  });
-}
+  }
