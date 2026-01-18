@@ -58,7 +58,7 @@ h1 {
   border-radius: 14px;
 }
 /* ==========================
-   COLORES KPI DECISIÓN
+    COLORES KPI DECISIÓN
 ========================== */
 
 .kpi {
@@ -174,7 +174,7 @@ async function cargar() {
     return;
   }
 
- const mapaInflacion = {};
+  const mapaInflacion = {};
 inflacion.forEach(i => mapaInflacion[i.periodo] = i.inflacion);
 
 historial.forEach(h => {
@@ -313,7 +313,10 @@ async function cargarAnalisisAnual() {
   `;
 }
 
-cargar();
+</script>
+<script src="dashboard.js"></script>
+<script>
+  cargar();
 </script>
 
 </body>
