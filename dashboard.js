@@ -25,12 +25,23 @@ window.onload = cargarDashboard;
 // =====================
 // HELPERS
 // =====================
-function extraerTrimestre(periodo) {
+function normalizarPorcentaje(valor) {
+  if (valor === null || valor === undefined) return 0;
+  return Math.abs(valor) < 1
+    ? Number((valor * 100).toFixed(2))
+    : Number(valor.toFixed(2));
+}
+
+function obtenerTrimestre(periodo) {
   // "2024-T1" → "T1"
-  if (!periodo) return null;
-  const m = periodo.match(/T[1-4]/);
+  const m = periodo?.match(/T[1-4]/);
   return m ? m[0] : periodo;
 }
+function extraerTrimestre(periodo) {
+  // "2024-T1" → "T1"
+  return periodo.split("-")[1];
+} 
+
 
 function activar(id) {
   document.getElementById("btnTrimestral").classList.remove("activo");
@@ -59,14 +70,21 @@ async function cargarDashboard() {
   }
 
   // ----- MAPA DE INFLACIÓN -----
-  const mapaInflacion = {};
-  inflacion.forEach(i => {
-    const val =
-      Math.abs(i.inflacion) < 1
-        ? Number((i.inflacion * 100).toFixed(2))
-        : Number(i.inflacion);
-    mapaInflacion[i.periodo] = val;
-  });
+   const mapaInflacion = {};
+inflacion.forEach(i => {
+  mapaInflacion[i.periodo] = normalizarPorcentaje(i.inflacion);
+});
+
+historial.forEach(h => {
+
+  const trimestre = obtenerTrimestre(h.periodo);
+
+  h.variacion = normalizarPorcentaje(h.variacion);
+  h.inflacion = normalizarPorcentaje(mapaInflacion[trimestre]);
+
+  h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
+});
+
 
   // ----- CALCULO KPIs -----
   historial.forEach(h => {
