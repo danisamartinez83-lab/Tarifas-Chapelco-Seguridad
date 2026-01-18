@@ -90,9 +90,6 @@ historial.forEach(h => {
 
   // ----- CALCULO KPIs -----
 
-
-  const u = historial.at(-1);
-
   renderKPIs([
     {
       titulo: "Tarifa actual",
