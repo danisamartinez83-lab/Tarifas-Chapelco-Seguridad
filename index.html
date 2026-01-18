@@ -202,7 +202,7 @@ canvas {
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbz-mwhaLXEjKsmxe-47_y-wFm6oq-rpGn9Gqe7UmyTZJ21tUW42fGn1bVQzZSzMq8cH/exec";
+const API = "https://script.google.com/macros/s/AKfycbyFqoFdrBUGc5i1LdwUIAO3KyVM206_EvDKd2QCT7R0YRZVoU4OHhcYblZW6TwEIn_Mlg/exec";
 
 const clienteEl = () => document.getElementById("cliente");
 const anioEl = () => document.getElementById("anio");
@@ -322,13 +322,18 @@ async function cargarHistorial() {
   const tbody = document.querySelector("#tablaHistorial tbody");
   tbody.innerHTML = "";
 
-  historial.forEach(h => {
+historial.forEach(h => {
+    // Validamos que la variación no sea null/undefined
+    const variacionLimpia = (h.variacion === null || h.variacion === undefined) ? 0 : h.variacion;
+    const colorTexto = variacionLimpia > 0 ? '#4caf50' : (variacionLimpia < 0 ? '#f44336' : '#aaa');
+    const signo = variacionLimpia > 0 ? '+' : '';
+
     tbody.innerHTML += `
       <tr>
         <td>${h.periodo}</td>
         <td>$ ${h.promedio.toLocaleString("es-AR")}</td>
-        <td style="color:${h.variacion>=0?'#4caf50':'#f44336'}">
-          ${h.variacion>0?'+':''}${h.variacion} %
+        <td style="color:${colorTexto}; font-weight:bold">
+          ${signo}${variacionLimpia} %
         </td>
       </tr>`;
   });

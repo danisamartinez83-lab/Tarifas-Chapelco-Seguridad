@@ -67,27 +67,38 @@ async function cargarDashboard() {
       return;
     }
 
-    // MAPA DE INFLACIÓN - Aseguramos que la key sea limpia (ej: "T1")
+// 1. MAPA DE INFLACIÓN - Aseguramos que la key sea limpia y el valor sea numérico
     const mapaInflacion = {};
-    inflacion.forEach(i => {
-      const t = extraerTrimestre(i.periodo);
-      mapaInflacion[t] = normalizarPorcentaje(i.inflacion);
-    });
+    if (inflacion && Array.isArray(inflacion)) {
+        inflacion.forEach(i => {
+            // Extraemos el identificador (ej: "T1")
+            const t = extraerTrimestre(i.periodo);
+            // Guardamos el valor forzando que sea número y no null
+            mapaInflacion[t] = normalizarPorcentaje(i.inflacion || 0);
+        });
+    }
 
+    // 2. VINCULACIÓN DE DATOS - Procesamos el historial
     historial.forEach(h => {
-      const t = extraerTrimestre(h.periodo);
-      h.promedio  = Number(h.promedio ?? 0);
-      
-      // Forzamos el 0 si el valor de variación es null en el JSON
-      h.variacion = (h.variacion === null || h.variacion === undefined) ? 0 : normalizarPorcentaje(h.variacion);
-      
-      // Vinculamos la inflación
-      h.inflacion = mapaInflacion[t] !== undefined ? mapaInflacion[t] : 0;
-      h.brecha = parseFloat((h.variacion - h.inflacion).toFixed(2));
+        const t = extraerTrimestre(h.periodo);
+        
+        // Limpieza de Promedio (evita el "NaN")
+        h.promedio = Number(h.promedio) || 0;
+        
+        // Limpieza de Variación (evita el "null %")
+        h.variacion = (h.variacion === null || h.variacion === undefined) ? 0 : normalizarPorcentaje(h.variacion);
+        
+        // Vinculamos la inflación usando el mapa anterior
+        // Si no existe inflación para ese periodo en el Excel, ponemos 0
+        h.inflacion = (mapaInflacion[t] !== undefined) ? mapaInflacion[t] : 0;
+        
+        // Cálculo de Brecha (Variación - Inflación)
+        h.brecha = parseFloat((h.variacion - h.inflacion).toFixed(2));
     });
 
-    const u = historial[historial.length - 1];
-
+    // 3. OBTENER ÚLTIMO REGISTRO (para los KPIs)
+    // Usamos .at(-1) que es más moderno o historial[length-1]
+    const u = historial.length > 0 ? historial[historial.length - 1] : { promedio: 0, variacion: 0, inflacion: 0, brecha: 0 };
     renderKPIs([
       {
         titulo: "Tarifa actual",
