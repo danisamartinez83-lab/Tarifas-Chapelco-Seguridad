@@ -15,17 +15,10 @@ body {
   padding: 30px;
 }
 
-h1 {
-  color: #ff7a18;
-  margin-bottom: 5px;
-}
+h1 { color: #ff7a18; }
 
-.subtitulo {
-  color: #aaa;
-  margin-bottom: 25px;
-}
+.subtitulo { color: #aaa; margin-bottom: 25px; }
 
-/* KPIs */
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
@@ -35,64 +28,28 @@ h1 {
 
 .kpi {
   background: #1a1d24;
-  padding: 20px;
-  border-radius: 14px;
-  border-left: 6px solid #ff7a18;
-}
-
-.kpi small {
-  color: #aaa;
-  font-size: 13px;
-}
-
-.kpi h2 {
-  margin: 8px 0 0;
-  font-size: 26px;
-  color: #ffb26b;
-}
-
-/* Gráfico */
-.grafico {
-  background: #1a1d24;
-  padding: 25px;
-  border-radius: 14px;
-}
-/* ==========================
-    COLORES KPI DECISIÓN
-========================== */
-
-.kpi {
-  background: #1a1d24;
   padding: 18px;
   border-radius: 12px;
   border-left: 6px solid #444;
 }
 
-.kpi h2 {
-  margin: 8px 0 0;
-  color: #ff7a18;
+.kpi.verde { border-left-color: #4caf50; }
+.kpi.amarillo { border-left-color: #ff9800; }
+.kpi.rojo { border-left-color: #f44336; }
+
+.kpi small { color: #aaa; }
+.kpi h2 { color: #ff7a18; margin-top: 6px; }
+
+.grafico {
+  background: #1a1d24;
+  padding: 25px;
+  border-radius: 14px;
 }
 
-.kpi small {
-  color: #aaa;
-}
-
-.kpi.verde {
-  border-left-color: #4caf50;
-}
-
-.kpi.amarillo {
-  border-left-color: #ff9800;
-}
-
-.kpi.rojo {
-  border-left-color: #f44336;
-}
 .acciones-dashboard {
   display: flex;
   gap: 12px;
   margin: 25px 0;
-  flex-wrap: wrap;
 }
 
 .acciones-dashboard button {
@@ -101,24 +58,14 @@ h1 {
   border: 1px solid #333;
   padding: 10px 18px;
   border-radius: 10px;
-  font-size: 14px;
   cursor: pointer;
-  transition: all .2s ease;
-}
-
-.acciones-dashboard button:hover {
-  background: #ff7a18;
-  color: #111;
-  border-color: #ff7a18;
 }
 
 .acciones-dashboard button.activo {
   background: #ff7a18;
   color: #111;
-  border-color: #ff7a18;
   font-weight: bold;
 }
-
 </style>
 </head>
 
@@ -127,197 +74,17 @@ h1 {
 <h1>📊 Dashboard Ejecutivo</h1>
 <div class="subtitulo" id="detalle"></div>
 
+<div class="acciones-dashboard">
+  <button id="btnTrimestral">📈 Análisis trimestral</button>
+  <button id="btnAnual">📊 Análisis anual</button>
+</div>
+
 <div class="kpis" id="kpis"></div>
 
 <div class="grafico">
-  <h3 style="color:#ff7a18;margin:0">Tarifa vs Inflación</h3>
   <canvas id="grafico" height="120"></canvas>
 </div>
-<div class="acciones-dashboard">
-  <button id="btnTrimestral" onclick="cargarDashboard()">
-    📈 Análisis trimestral
-  </button>
 
-  <button id="btnAnual" onclick="cargarAnalisisAnual()">
-    📊 Análisis anual
-  </button>
-</div>
-
-
-
-<script>
-const params = new URLSearchParams(window.location.search);
-const cliente  = params.get("cliente");
-const anio     = params.get("anio");
-const servicio = params.get("servicio");
-const periodo  = params.get("periodo");
-
-document.getElementById("detalle").innerText =
-  `${cliente} · ${servicio} · ${anio} · ${periodo}`;
-
-const API =
-"https://script.google.com/macros/s/AKfycbz-mwhaLXEjKsmxe-47_y-wFm6oq-rpGn9Gqe7UmyTZJ21tUW42fGn1bVQzZSzMq8cH/exec";
-let chart;
-
-async function cargar() {
-
-  const [histRes, inflRes] = await Promise.all([
-    fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=${periodo}`).then(r=>r.json()),
-    fetch(`${API}?action=inflacion_trimestral&anio=${anio}`).then(r=>r.json())
-  ]);
-
-  const historial = histRes.historial;
-  const inflacion = inflRes.inflacion;
-
-  if (!historial || historial.length === 0) {
-    alert("No hay historial");
-    return;
-  }
-
-  const mapaInflacion = {};
-inflacion.forEach(i => mapaInflacion[i.periodo] = i.inflacion);
-
-historial.forEach(h => {
-
-  const variacionPct =
-    Math.abs(h.variacion) < 1 ? h.variacion * 100 : h.variacion;
-
-  const inflacionPct =
-    Math.abs(mapaInflacion[h.periodo]) < 1
-      ? mapaInflacion[h.periodo] * 100
-      : mapaInflacion[h.periodo];
-
-  h.variacion = Number(variacionPct.toFixed(2));
-  h.inflacion = Number(inflacionPct.toFixed(2));
-  h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
-});
-
-  renderKPIs(historial);
-  renderGrafico(historial);
-}
-function estadoBrecha(brecha) {
-  if (brecha >= 1.5) return "verde";
-  if (brecha <= -1.5) return "rojo";
-  return "amarillo";
-}
-
-function renderKPIs(hist) {
-
-  const ultimo = hist.at(-1);
-const color = estadoBrecha(ultimo.brecha);
-
-  document.getElementById("kpis").innerHTML = `
-    <div class="kpi">
-      <small>Tarifa actual</small>
-      <h2>$ ${Math.round(ultimo.promedio).toLocaleString("es-AR")}</h2>
-    </div>
-
-    <div class="kpi">
-      <small>Variación último trimestre</small>
-      <h2>${ultimo.variacion}%</h2>
-    </div>
-
-    <div class="kpi">
-      <small>Inflación último trimestre</small>
-      <h2>${ultimo.inflacion}%</h2>
-    </div>
-
-    
-    <div class="kpi ${color}">
-  <small>Brecha vs inflación</small>
-  <h2>${ultimo.brecha > 0 ? "+" : ""}${ultimo.brecha}%</h2>
-</div>
-
-  `;
-}
-
-function renderGrafico(hist) {
-
-  const labels = hist.map(h => h.periodo);
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("grafico"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Variación tarifa %",
-          data: hist.map(h => h.variacion),
-          borderColor: "#ff7a18",
-          tension: 0.35
-        },
-        {
-          label: "Inflación %",
-          data: hist.map(h => h.inflacion),
-          borderColor: "#4bc0c0",
-          borderDash: [6,6],
-          tension: 0.35
-        }
-      ]
-    },
-    options: {
-      plugins: {
-        legend: { labels: { color: "#fff" } }
-      },
-      scales: {
-        x: { ticks: { color: "#aaa" } },
-        y: { ticks: { color: "#aaa" } }
-      }
-    }
-  });
-}
-async function cargarAnalisisAnual() {
-
-  const res = await fetch(
-    `${API}?action=analisis_anual` +
-    `&cliente=${encodeURIComponent(cliente)}` +
-    `&año=${encodeURIComponent(anio)}` +
-    `&servicio=${encodeURIComponent(servicio)}`
-  );
-
-  const data = await res.json();
-
-  if (data.error) {
-    alert(data.error);
-    return;
-  }
-
-  // reutilizamos el contenedor de KPIs
-  document.getElementById("kpis").innerHTML = `
-    <div class="kpi">
-      <small>Tarifa Enero</small>
-      <h2>$ ${Math.round(data.tarifa_enero).toLocaleString("es-AR")}</h2>
-    </div>
-
-    <div class="kpi">
-      <small>Tarifa Diciembre</small>
-      <h2>$ ${Math.round(data.tarifa_diciembre).toLocaleString("es-AR")}</h2>
-    </div>
-
-    <div class="kpi">
-      <small>Variación anual</small>
-      <h2>${data.variacion_anual.toFixed(2)}%</h2>
-    </div>
-
-    <div class="kpi">
-      <small>Inflación anual</small>
-      <h2>${data.inflacion_anual.toFixed(2)}%</h2>
-    </div>
-
-    <div class="kpi ${data.brecha_anual >= 0 ? "verde" : "rojo"}">
-      <small>Brecha anual</small>
-      <h2>${data.brecha_anual.toFixed(2)}%</h2>
-    </div>
-  `;
-}
-
-</script>
 <script src="dashboard.js"></script>
-<script>
-  cargar();
-</script>
-
 </body>
 </html>
