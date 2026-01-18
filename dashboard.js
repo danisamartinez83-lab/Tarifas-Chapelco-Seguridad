@@ -27,6 +27,7 @@ window.onload = () => {
 // DASHBOARD
 // =====================
 async function cargarDashboard() {
+console.log("CLICK TRIMESTRAL");
 
   document.getElementById("btnTrimestral")?.classList.add("activo");
   document.getElementById("btnAnual")?.classList.remove("activo");
@@ -58,6 +59,7 @@ async function cargarDashboard() {
 }
 
 async function cargarAnalisisAnual() {
+console.log("CLICK ANUAL");
 
   document.getElementById("btnAnual")?.classList.add("activo");
   document.getElementById("btnTrimestral")?.classList.remove("activo");
