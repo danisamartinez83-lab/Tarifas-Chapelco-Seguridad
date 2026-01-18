@@ -35,15 +35,19 @@ async function cargarDashboard() {
     return;
   }
   // Calcular variación e inflación
-  historial.forEach((h, i) => {
-    h.variacion = i === 0 ? 0 : (((h.promedio - historial[i - 1].promedio) / historial[i - 1].promedio) * 100);
-    h.inflacion = inflacion[i] ? inflacion[i].inflacion : 0;
+  historial.forEach(h=>{
+    h.variacion = Number(h.variacion ?? 0);
+    const inf = inflacion.find(i=>i.periodo === h.periodo);
+    h.inflacion = inf ? Number(inf.inflacion ?? 0) : 0;
   });
+
+  // Último trimestre
   const u = historial[historial.length - 1];
-  u.variacion = historial.length === 1 ? 0 : (((u.promedio - historial[historial.length - 2].promedio) / historial[historial.length - 2].promedio) * 100);
-  u.inflacion = inflacion.length ? inflacion[inflacion.length - 1].inflacion : 0;
-  u.brecha = u.variacion - u.inflacion;
-  
+  u.promedio  = Number(u.promedio ?? 0);
+  u.variacion = Number(u.variacion ?? 0);
+  u.inflacion = Number(u.inflacion ?? 0);
+  u.brecha    = u.variacion - u.inflacion;  
+
   renderKPIs([
     { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color:"verde" },
     { titulo: "Variación trimestre", valor: `${u.variacion}%`, color: u.brecha>=0?"verde":"rojo" },
