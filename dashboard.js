@@ -34,20 +34,16 @@ async function cargarDashboard() {
     alert("No hay datos trimestrales");
     return;
   }
-
-  const mapa = {};
-  inflacion.forEach(i => mapa[i.periodo] = i.inflacion);
-
-  historial.forEach(h => {
-    const clave = normalizarPeriodo(h.periodo);
-const ipcRaw = mapa[clave] ?? 0;
-
-h.inflacion = Math.abs(ipcRaw) < 1 ? ipcRaw * 100 : ipcRaw;
-h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
+  // Calcular variación e inflación
+  historial.forEach((h, i) => {
+    h.variacion = i === 0 ? 0 : (((h.promedio - historial[i - 1].promedio) / historial[i - 1].promedio) * 100);
+    h.inflacion = inflacion[i] ? inflacion[i].inflacion : 0;
   });
+  const u = historial[historial.length - 1];
+  u.variacion = historial.length === 1 ? 0 : (((u.promedio - historial[historial.length - 2].promedio) / historial[historial.length - 2].promedio) * 100);
+  u.inflacion = inflacion.length ? inflacion[inflacion.length - 1].inflacion : 0;
+  u.brecha = u.variacion - u.inflacion;
   
-  const u = historial.at(-1);
-
   renderKPIs([
     { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color:"verde" },
     { titulo: "Variación trimestre", valor: `${u.variacion}%`, color: u.brecha>=0?"verde":"rojo" },
