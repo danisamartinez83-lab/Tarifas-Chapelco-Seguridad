@@ -27,6 +27,7 @@ window.onload = cargarDashboard;
 // =====================
 function normalizarPorcentaje(valor) {
   if (valor === 0) return 0;
+  if (valor === null || valor === undefined) return 0;    
   return Math.abs(valor) < 1
     ? Number((valor * 100).toFixed(2))
     : Number(valor.toFixed(2));
@@ -79,22 +80,16 @@ historial.forEach(h => {
 
   const trimestre = obtenerTrimestre(h.periodo);
 
-  h.variacion = normalizarPorcentaje(h.variacion);
-  h.inflacion = normalizarPorcentaje(mapaInflacion[trimestre]);
+  h.promedio  = Number(h.promedio ?? 0);
+  h.variacion = normalizarPorcentaje(h.variacion ?? 0);
+  h.inflacion = normalizarPorcentaje(mapaInflacion[trimestre] ?? 0);
 
   h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
 });
 
 
   // ----- CALCULO KPIs -----
-  historial.forEach(h => {
-    h.promedio  = Number(h.promedio ?? 0);
-    h.variacion = Number(h.variacion ?? 0);
 
-    const t = extraerTrimestre(h.periodo);
-    h.inflacion = mapaInflacion[t] ?? 0;
-    h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
-  });
 
   const u = historial.at(-1);
 
