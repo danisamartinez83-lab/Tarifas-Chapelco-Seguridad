@@ -30,11 +30,18 @@ async function cargarDashboard() {
   const historial = histRes.historial || [];
   const inflacion = inflRes.inflacion || [];
 
+  if (!historial.length) {
+    alert("No hay datos trimestrales");
+    return;
+  }
+
   const mapa = {};
   inflacion.forEach(i => mapa[i.periodo] = i.inflacion);
 
   historial.forEach(h => {
-    h.inflacion = mapa[h.periodo] ?? 0;
+    const ipcRaw = mapa[h.periodo] ?? 0;
+
+    h.inflacion = Math.abs(ipcRaw) < 1 ? ipcRaw * 100 : ipcRaw;
     h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
   });
 
@@ -43,8 +50,8 @@ async function cargarDashboard() {
   renderKPIs([
     { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color:"verde" },
     { titulo: "Variación trimestre", valor: `${u.variacion}%`, color: u.brecha>=0?"verde":"rojo" },
-    { titulo: "Inflación trimestre", valor: `${u.inflacion}%`, color:"amarillo" },
-    { titulo: "Brecha", valor: `${u.brecha}%`, color: u.brecha>=0?"verde":"rojo" }
+    { titulo: "Inflación trimestre", valor: `${u.inflacion.toFixed(2)}%`, color:"amarillo" },
+    { titulo: "Brecha", valor: `${u.brecha > 0 ? "+" : ""}${u.brecha}%`, color: u.brecha>=0?"verde":"rojo" }
   ]);
 
   renderGrafico(historial);
@@ -61,6 +68,13 @@ async function cargarAnalisisAnual() {
     `${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`
   );
   const d = await res.json();
+
+  // 🔒 blindaje total
+  d.tarifa_enero     = Number(d.tarifa_enero ?? 0);
+  d.tarifa_diciembre = Number(d.tarifa_diciembre ?? 0);
+  d.variacion_anual  = Number(d.variacion_anual ?? 0);
+  d.inflacion_anual  = Number(d.inflacion_anual ?? 0);
+  d.brecha_anual     = Number(d.brecha_anual ?? 0);
 
   renderKPIs([
     { titulo:"Tarifa Enero", valor:`$ ${d.tarifa_enero.toLocaleString("es-AR")}`, color:"verde" },
