@@ -23,87 +23,98 @@ document.getElementById("btnAnual").onclick = cargarAnalisisAnual;
 window.onload = cargarDashboard;
 
 // =====================
-// HELPERS
+// HELPERS (CORREGIDOS)
 // =====================
 function normalizarPorcentaje(v) {
+  // Verificamos si es estrictamente null, undefined o NaN
   if (v === null || v === undefined || isNaN(v)) return 0;
-  return Math.abs(v) < 1 ? +(v * 100).toFixed(2) : +v.toFixed(2);
+  
+  // Si es 0, devolvemos 0 explícitamente para evitar que se trate como null
+  if (v === 0) return 0;
+
+  // Ajuste para valores decimales (ej: 0.05 -> 5%) o valores ya enteros
+  let num = Number(v);
+  if (Math.abs(num) < 1 && num !== 0) {
+    return parseFloat((num * 100).toFixed(2));
+  }
+  return parseFloat(num.toFixed(2));
 }
 
 function extraerTrimestre(periodo) {
-  // "2024-T2" → "T2"
-  return periodo?.split("-")[1] ?? "";
-}
-
-function activar(id) {
-  ["btnTrimestral", "btnAnual"].forEach(b =>
-    document.getElementById(b)?.classList.remove("activo")
-  );
-  document.getElementById(id)?.classList.add("activo");
+  if (!periodo) return "";
+  // Agregamos lógica más robusta: busca la "T" seguida de un número
+  const match = periodo.match(/T\d/);
+  return match ? match[0] : periodo; 
 }
 
 // =====================
-// DASHBOARD TRIMESTRAL
+// DASHBOARD TRIMESTRAL (REVISADO)
 // =====================
 async function cargarDashboard() {
-
   activar("btnTrimestral");
 
-  const [histRes, inflRes] = await Promise.all([
-    fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`).then(r => r.json()),
-    fetch(`${API}?action=inflacion_trimestral&año=${anio}`).then(r => r.json())
-  ]);
+  try {
+    const [histRes, inflRes] = await Promise.all([
+      fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`).then(r => r.json()),
+      fetch(`${API}?action=inflacion_trimestral&año=${anio}`).then(r => r.json())
+    ]);
 
-  const historial = histRes.historial || [];
-  const inflacion = inflRes.inflacion || [];
+    const historial = histRes.historial || [];
+    const inflacion = inflRes.inflacion || [];
 
-  if (!historial.length) {
-    alert("No hay datos trimestrales");
-    return;
-  }
-
-  // ----- MAPA DE INFLACIÓN POR TRIMESTRE -----
-  const mapaInflacion = {};
-  inflacion.forEach(i => {
-    const t = extraerTrimestre(i.periodo);
-    mapaInflacion[t] = normalizarPorcentaje(i.inflacion);
-  });
-
-  historial.forEach(h => {
-    const t = extraerTrimestre(h.periodo);
-    h.promedio  = Number(h.promedio ?? 0);
-    h.variacion = normalizarPorcentaje(h.variacion);
-    h.inflacion = mapaInflacion[t] ?? 0;
-    h.brecha = +(h.variacion - h.inflacion).toFixed(2);
-  });
-
-  // ÚLTIMO TRIMESTRE
-  const u = historial[historial.length - 1];
-
-  renderKPIs([
-    {
-      titulo: "Tarifa actual",
-      valor: `$ ${u.promedio.toLocaleString("es-AR")}`,
-      color: "verde"
-    },
-    {
-      titulo: "Variación trimestre",
-      valor: `${u.variacion > 0 ? "+" : ""}${u.variacion}%`,
-      color: u.brecha >= 0 ? "verde" : "rojo"
-    },
-    {
-      titulo: "Inflación trimestre",
-      valor: `${u.inflacion.toFixed(2)}%`,
-      color: "amarillo"
-    },
-    {
-      titulo: "Brecha",
-      valor: `${u.brecha > 0 ? "+" : ""}${u.brecha}%`,
-      color: u.brecha >= 0 ? "verde" : "rojo"
+    if (!historial.length) {
+      console.warn("No hay datos trimestrales");
+      return;
     }
-  ]);
 
-  renderGrafico(historial);
+    // MAPA DE INFLACIÓN - Aseguramos que la key sea limpia (ej: "T1")
+    const mapaInflacion = {};
+    inflacion.forEach(i => {
+      const t = extraerTrimestre(i.periodo);
+      mapaInflacion[t] = normalizarPorcentaje(i.inflacion);
+    });
+
+    historial.forEach(h => {
+      const t = extraerTrimestre(h.periodo);
+      h.promedio  = Number(h.promedio ?? 0);
+      
+      // Forzamos el 0 si el valor de variación es null en el JSON
+      h.variacion = (h.variacion === null || h.variacion === undefined) ? 0 : normalizarPorcentaje(h.variacion);
+      
+      // Vinculamos la inflación
+      h.inflacion = mapaInflacion[t] !== undefined ? mapaInflacion[t] : 0;
+      h.brecha = parseFloat((h.variacion - h.inflacion).toFixed(2));
+    });
+
+    const u = historial[historial.length - 1];
+
+    renderKPIs([
+      {
+        titulo: "Tarifa actual",
+        valor: `$ ${u.promedio.toLocaleString("es-AR")}`,
+        color: "verde"
+      },
+      {
+        titulo: "Variación trimestre",
+        valor: `${u.variacion >= 0 ? "+" : ""}${u.variacion}%`, // Cambiado > por >= para incluir el 0
+        color: u.brecha >= 0 ? "verde" : "rojo"
+      },
+      {
+        titulo: "Inflación trimestre",
+        valor: `${u.inflacion}%`,
+        color: "amarillo"
+      },
+      {
+        titulo: "Brecha",
+        valor: `${u.brecha >= 0 ? "+" : ""}${u.brecha}%`,
+        color: u.brecha >= 0 ? "verde" : "rojo"
+      }
+    ]);
+
+    renderGrafico(historial);
+  } catch (error) {
+    console.error("Error cargando dashboard:", error);
+  }
 }
 
 // =====================
