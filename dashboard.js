@@ -23,11 +23,11 @@ window.onload = () => {
   cargarDashboard();
 };
 
+
 // =====================
-// DASHBOARD
+// DASHBOARD TRIMESTRAL
 // =====================
 async function cargarDashboard() {
-console.log("CLICK TRIMESTRAL");
 
   document.getElementById("btnTrimestral")?.classList.add("activo");
   document.getElementById("btnAnual")?.classList.remove("activo");
@@ -41,10 +41,10 @@ console.log("CLICK TRIMESTRAL");
     const histData = await histRes.json();
     const inflData = await inflRes.json();
 
-    const historial = histData.historial;
-    const inflacion = inflData.inflacion;
+    const historial = histData.historial || [];
+    const inflacion = inflData.inflacion || [];
 
-    if (!historial || historial.length === 0) {
+    if (!historial.length) {
       alert("No hay datos trimestrales");
       return;
     }
@@ -58,28 +58,43 @@ console.log("CLICK TRIMESTRAL");
   }
 }
 
+
+// =====================
+// ANÁLISIS ANUAL
+// =====================
 async function cargarAnalisisAnual() {
-console.log("CLICK ANUAL");
 
   document.getElementById("btnAnual")?.classList.add("activo");
   document.getElementById("btnTrimestral")?.classList.remove("activo");
 
-  const res = await fetch(
-    `${API}?action=analisis_anual` +
-    `&cliente=${encodeURIComponent(cliente)}` +
-    `&año=${encodeURIComponent(anio)}` +
-    `&servicio=${encodeURIComponent(servicio)}`
-  );
+  try {
+    const res = await fetch(
+      `${API}?action=analisis_anual` +
+      `&cliente=${encodeURIComponent(cliente)}` +
+      `&año=${encodeURIComponent(anio)}` +
+      `&servicio=${encodeURIComponent(servicio)}`
+    );
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.error) {
-    alert(data.error);
-    return;
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    // 🔒 Blindaje de nulls
+    data.variacion_anual  = Number(data.variacion_anual ?? 0);
+    data.inflacion_anual  = data.inflacion_anual !== null ? Number(data.inflacion_anual) : null;
+    data.brecha_anual     = data.brecha_anual !== null ? Number(data.brecha_anual) : null;
+
+    renderAnalisisAnual(data);
+
+  } catch (e) {
+    console.error(e);
+    alert("Error cargando análisis anual");
   }
-
-  renderAnalisisAnual(data);
 }
+
 
 // =====================
 // KPIs
