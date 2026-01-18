@@ -26,6 +26,7 @@ window.onload = cargarDashboard;
 // HELPERS
 // =====================
 function normalizarPorcentaje(valor) {
+  if (valor === 0) return 0;
   if (valor === null || valor === undefined) return 0;
   return Math.abs(valor) < 1
     ? Number((valor * 100).toFixed(2))
