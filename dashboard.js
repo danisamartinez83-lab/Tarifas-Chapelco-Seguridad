@@ -39,12 +39,13 @@ async function cargarDashboard() {
   inflacion.forEach(i => mapa[i.periodo] = i.inflacion);
 
   historial.forEach(h => {
-    const ipcRaw = mapa[h.periodo] ?? 0;
+    const clave = normalizarPeriodo(h.periodo);
+const ipcRaw = mapa[clave] ?? 0;
 
-    h.inflacion = Math.abs(ipcRaw) < 1 ? ipcRaw * 100 : ipcRaw;
-    h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
+h.inflacion = Math.abs(ipcRaw) < 1 ? ipcRaw * 100 : ipcRaw;
+h.brecha = Number((h.variacion - h.inflacion).toFixed(2));
   });
-
+  
   const u = historial.at(-1);
 
   renderKPIs([
@@ -69,7 +70,6 @@ async function cargarAnalisisAnual() {
   );
   const d = await res.json();
 
-  // 🔒 blindaje total
   d.tarifa_enero     = Number(d.tarifa_enero ?? 0);
   d.tarifa_diciembre = Number(d.tarifa_diciembre ?? 0);
   d.variacion_anual  = Number(d.variacion_anual ?? 0);
@@ -84,8 +84,9 @@ async function cargarAnalisisAnual() {
     { titulo:"Brecha anual", valor:`${d.brecha_anual.toFixed(2)}%`, color:d.brecha_anual>=0?"verde":"rojo" }
   ]);
 
-  if (chart) chart.destroy();
+  renderGraficoAnual(d);
 }
+
 
 // =====================
 function renderKPIs(kpis) {
@@ -112,6 +113,31 @@ function renderGrafico(hist) {
         { label:"Variación %", data:hist.map(h=>h.variacion), borderColor:"#ff7a18", tension:.3 },
         { label:"Inflación %", data:hist.map(h=>h.inflacion), borderColor:"#4dd0e1", borderDash:[6,6], tension:.3 }
       ]
+    }
+  });
+}
+function renderGraficoAnual(d) {
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("grafico"), {
+    type: "bar",
+    data: {
+      labels: ["Variación tarifa", "Inflación"],
+      datasets: [{
+        label: "Comparación anual %",
+        data: [d.variacion_anual, d.inflacion_anual],
+        backgroundColor: ["#ff7a18", "#4dd0e1"]
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: "#fff" } }
+      },
+      scales: {
+        x: { ticks: { color: "#aaa" } },
+        y: { ticks: { color: "#aaa" } }
+      }
     }
   });
 }
