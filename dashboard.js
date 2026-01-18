@@ -1,5 +1,5 @@
 const API =
-  "https://script.google.com/macros/s/AKfycbz-mwhaLXEjKsmxe-47_y-wFm6oq-rpGn9Gqe7UmyTZJ21tUW42fGn1bVQzZSzMq8cH/exec";
+  "https://script.google.com/macros/s/AKfycbxxNjLhLFUMpmTDQ8HZekb6yYsN-DDqyKmXkn_B3f1KjJPGh93F7wKWeOcEvHSSzDi64g/exec";
 
 // =====================
 // PARÁMETROS
