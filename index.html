@@ -149,7 +149,13 @@ canvas {
     <button class="secondary" onclick="exportarPDF()">Exportar PDF</button>
     <button class="secondary" onclick="abrirDashboard()">Abrir Dashboard</button>
   </div>
-
+<div class="acciones-principales">
+    <button id="btnBuscar">Buscar</button>
+    
+    <button id="btnExportarMasivo" style="background-color: #00695c; color: white;">
+        📥 Exportar Reporte de Todos los Clientes
+    </button>
+</div>
   <table id="tabla" style="display:none">
     <thead>
       <tr>
@@ -189,13 +195,7 @@ canvas {
   <option value="semestral">Semestral</option>
   <option value="trimestral">Trimestral</option>
 </select>
-<div class="acciones-principales">
-    <button id="btnBuscar">Buscar</button>
-    
-    <button id="btnExportarMasivo" style="background-color: #00695c; color: white;">
-        📥 Exportar Reporte de Todos los Clientes
-    </button>
-</div>
+
 <div class="graficos">
   <div class="grafico-box">
     <canvas id="graficoHistorial"></canvas>
