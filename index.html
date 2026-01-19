@@ -143,18 +143,16 @@ canvas {
     <select id="mes"></select>
   </div>
 
-  <div class="actions">
-    <button onclick="buscar()">Buscar tarifas</button>
+<div class="actions">
+    <button onclick="buscar()">🔍 Buscar tarifas</button>
     <button class="secondary" onclick="limpiar()">Limpiar</button>
     <button class="secondary" onclick="exportarPDF()">Exportar PDF</button>
     <button class="secondary" onclick="abrirDashboard()">Abrir Dashboard</button>
-  </div>
-<div class="acciones-principales">
-    <button id="btnBuscar">Buscar</button>
     
-    <button id="btnExportarMasivo" class="secondary" style="background-color: #3d4449; color: #fff; margin-top: 10px; border: 1px solid #555;">
-    📥 Exportar Reporte de Todos los Clientes
-</button>
+    <button id="btnExportarMasivo" class="secondary" style="background-color: #3d4449; color: #fff; border: 1px solid #555;">
+        📥 Reporte Mensual (Todos)
+    </button>
+</div>
 </div>
   <table id="tabla" style="display:none">
     <thead>
@@ -429,21 +427,18 @@ chartVariacion = new Chart(graficoVariacion, {
   }
 });
 }
+// Este código maneja el botón de exportación masiva
 document.getElementById("btnExportarMasivo").onclick = function() {
-    // 1. Obtenemos los valores con los IDs CORRECTOS que usaste arriba
+    // Usamos los IDs exactos de tus selectores: 'anio' y 'mes'
     const anioSeleccionado = document.getElementById("anio").value; 
     const mesSeleccionado = document.getElementById("mes").value;
 
-    // 2. Validamos que haya elegido algo
     if (!anioSeleccionado || !mesSeleccionado) {
-        alert("Por favor, selecciona un Mes y un Año para generar el reporte de todos los clientes.");
+        alert("Por favor, selecciona un Año y un Mes para generar el reporte masivo.");
         return;
     }
 
-    // 3. Construimos la URL para la Acción 6
     const url = `${API}?action=exportar_mensual&año=${anioSeleccionado}&mes=${mesSeleccionado}`;
-
-    // 4. Abrimos en una pestaña nueva
     window.open(url, "_blank");
 };
 function abrirDashboard() {
