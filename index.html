@@ -429,23 +429,23 @@ chartVariacion = new Chart(graficoVariacion, {
 }
 // Este código maneja el botón de exportación masiva
 document.getElementById("btnExportarMasivo").onclick = function() {
-    const anioSeleccionado = document.getElementById("anio").value; 
-    const mesSeleccionado = document.getElementById("mes").value;
+    const anio = document.getElementById("anio").value; 
+    const mes = document.getElementById("mes").value;
 
-    if (!anioSeleccionado || !mesSeleccionado) {
-        alert("Por favor, selecciona un Año y un Mes.");
+    if (!anio || !mes) {
+        alert("Por favor, selecciona Año y Mes");
         return;
     }
 
-    const url = `${API}?action=exportar_mensual&año=${anioSeleccionado}&mes=${mesSeleccionado}`;
+    // El parámetro 'authuser=0' suele resolver el conflicto de múltiples cuentas
+    const url = `${API}?action=exportar_mensual&año=${anio}&mes=${mes}&authuser=0`;
     
-    // En móviles, window.location.href suele ser más efectivo que window.open
-    // para evitar que el navegador bloquee la pestaña como "pop-up"
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        window.location.href = url;
-    } else {
-        window.open(url, "_blank");
-    }
+    // En móviles, para saltar bloqueos, usamos un enlace temporal
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.click();
 };
 function abrirDashboard() {
   const cliente = clienteEl().value;
