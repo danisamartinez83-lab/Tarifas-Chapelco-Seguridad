@@ -193,13 +193,16 @@ function renderGraficoAnual(d) {
                 backgroundColor: ["#ff7a18", "#4dd0e1"]
             }]
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { labels: { color: "#fff" } } },
-            scales: {
-                y: { ticks: { color: "#aaa" }, beginAtZero: true }
-            }
+       options: {
+    responsive: true,
+    maintainAspectRatio: false, // Vital para que use el alto definido en CSS
+    plugins: {
+        legend: {
+            position: 'bottom', // En celular es mejor tener la leyenda abajo
+            labels: { boxWidth: 10, font: { size: 11 } }
         }
+    }
+}
     });
 }
 document.getElementById("btnPDF").onclick = () => {

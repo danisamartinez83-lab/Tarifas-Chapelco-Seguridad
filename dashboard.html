@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Ejecutivo</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,17 +13,18 @@ body {
   background: #0f1115;
   color: #fff;
   margin: 0;
-  padding: 30px;
+  padding: 20px; /* Reducido de 30px para ganar espacio en móvil */
 }
 
-h1 { color: #ff7a18; }
+h1 { color: #ff7a18; margin-top: 10px; }
 
-.subtitulo { color: #aaa; margin-bottom: 25px; }
+.subtitulo { color: #aaa; margin-bottom: 25px; font-size: 14px; }
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
-  gap: 20px;
+  /* El minmax asegura que en PC se vean varios y en móvil se ajusten solos */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
   margin-bottom: 30px;
 }
 
@@ -37,28 +39,36 @@ h1 { color: #ff7a18; }
 .kpi.amarillo { border-left-color: #ff9800; }
 .kpi.rojo { border-left-color: #f44336; }
 
-.kpi small { color: #aaa; }
-.kpi h2 { color: #ff7a18; margin-top: 6px; }
+.kpi small { color: #aaa; font-size: 12px; }
+.kpi h2 { color: #ff7a18; margin: 8px 0 0 0; font-size: 1.5rem; }
 
 .grafico {
   background: #1a1d24;
-  padding: 25px;
+  padding: 15px;
   border-radius: 14px;
+  position: relative;
+  /* Importante para que el gráfico sea responsivo */
+  height: 40vh; 
+  min-height: 250px;
 }
 
 .acciones-dashboard {
   display: flex;
-  gap: 12px;
-  margin: 25px 0;
+  flex-wrap: wrap; /* Permite que los botones bajen si no hay espacio */
+  gap: 10px;
+  margin: 20px 0;
 }
 
 .acciones-dashboard button {
   background: #1a1d24;
   color: #fff;
   border: 1px solid #333;
-  padding: 10px 18px;
+  padding: 12px 15px; /* Más cómodo para el dedo en móvil */
   border-radius: 10px;
   cursor: pointer;
+  flex: 1; /* Los botones crecen para ocupar el ancho en móvil */
+  min-width: 140px;
+  font-size: 14px;
 }
 
 .acciones-dashboard button.activo {
@@ -66,29 +76,51 @@ h1 { color: #ff7a18; }
   color: #111;
   font-weight: bold;
 }
+
+/* --- AJUSTES ESPECÍFICOS PARA CELULAR --- */
+@media (max-width: 600px) {
+  body { padding: 15px; }
+  
+  h1 { font-size: 1.4rem; }
+  
+  .acciones-dashboard {
+    display: grid;
+    grid-template-columns: 1fr; /* Botones uno debajo de otro */
+  }
+
+  .kpis {
+    grid-template-columns: 1fr; /* Una sola columna de KPIs */
+  }
+
+  .grafico {
+    height: 300px;
+    padding: 10px;
+  }
+}
+
+/* Ocultar botones en la impresión */
+@media print {
+  .acciones-dashboard { display: none; }
+}
 </style>
 </head>
 
 <body>
 
 <h1>📊 Dashboard Ejecutivo</h1>
-<div class="subtitulo" id="detalle"></div>
+<div class="subtitulo" id="detalle">Cargando datos del cliente...</div>
 
 <div class="acciones-dashboard">
-  <button id="btnTrimestral">📈 Análisis trimestral</button>
-  <button id="btnAnual">📊 Análisis anual</button>
-</div>
-
-<div class="kpis" id="kpis"></div>
-
-<div class="grafico">
-  <canvas id="grafico" height="120"></canvas>
-</div>
-
-<div class="acciones-dashboard">
-  <button id="btnTrimestral">📈 Análisis trimestral</button>
+  <button id="btnTrimestral" class="activo">📈 Análisis trimestral</button>
   <button id="btnAnual">📊 Análisis anual</button>
   <button id="btnPDF" style="border-color: #ff7a18; color: #ff7a18;">📄 Exportar PDF / Imprimir</button>
+</div>
+
+<div class="kpis" id="kpis">
+  </div>
+
+<div class="grafico">
+  <canvas id="grafico"></canvas>
 </div>
 
 <script src="dashboard.js"></script>
