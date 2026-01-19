@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbzeW7dhXPK0chtaNnjNayktVoBvn8--2y3ewEve3-1OBmkupyzsdLWhDKQjI9N9dn1-oQ/exec";
+const API = "https://script.google.com/macros/s/AKfycbyY2ld4B0BsgsQSr8KnRr9J3OT0xauee7So5jVjzTP7R6IUKhF32algDCPxB28unIEymA/exec";
 
 // =====================
 // PARÁMETROS
@@ -202,3 +202,14 @@ function renderGraficoAnual(d) {
         }
     });
 }
+document.getElementById("btnPDF").onclick = () => {
+    // Ocultamos los botones para que no salgan en el PDF
+    const acciones = document.querySelector(".acciones-dashboard");
+    acciones.style.display = "none";
+    
+    // Disparamos la impresión
+    window.print();
+    
+    // Los volvemos a mostrar después
+    acciones.style.display = "flex";
+};

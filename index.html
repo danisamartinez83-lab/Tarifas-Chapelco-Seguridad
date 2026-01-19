@@ -189,7 +189,13 @@ canvas {
   <option value="semestral">Semestral</option>
   <option value="trimestral">Trimestral</option>
 </select>
-
+<div class="acciones-principales">
+    <button id="btnBuscar">Buscar</button>
+    
+    <button id="btnExportarMasivo" style="background-color: #00695c; color: white;">
+        📥 Exportar Reporte de Todos los Clientes
+    </button>
+</div>
 <div class="graficos">
   <div class="grafico-box">
     <canvas id="graficoHistorial"></canvas>
@@ -202,7 +208,7 @@ canvas {
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbzeW7dhXPK0chtaNnjNayktVoBvn8--2y3ewEve3-1OBmkupyzsdLWhDKQjI9N9dn1-oQ/exec";
+const API = "https://script.google.com/macros/s/AKfycbyY2ld4B0BsgsQSr8KnRr9J3OT0xauee7So5jVjzTP7R6IUKhF32algDCPxB28unIEymA/exec";
 
 const clienteEl = () => document.getElementById("cliente");
 const anioEl = () => document.getElementById("anio");
@@ -423,7 +429,23 @@ chartVariacion = new Chart(graficoVariacion, {
   }
 });
 }
+document.getElementById("btnExportarMasivo").onclick = function() {
+    // 1. Obtenemos los valores con los IDs CORRECTOS que usaste arriba
+    const anioSeleccionado = document.getElementById("anio").value; 
+    const mesSeleccionado = document.getElementById("mes").value;
 
+    // 2. Validamos que haya elegido algo
+    if (!anioSeleccionado || !mesSeleccionado) {
+        alert("Por favor, selecciona un Mes y un Año para generar el reporte de todos los clientes.");
+        return;
+    }
+
+    // 3. Construimos la URL para la Acción 6
+    const url = `${API}?action=exportar_mensual&año=${anioSeleccionado}&mes=${mesSeleccionado}`;
+
+    // 4. Abrimos en una pestaña nueva
+    window.open(url, "_blank");
+};
 function abrirDashboard() {
   const cliente = clienteEl().value;
   const anio = anioEl().value;
