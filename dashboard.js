@@ -1,5 +1,4 @@
-const API =
-  "https://script.google.com/macros/s/AKfycbxxNjLhLFUMpmTDQ8HZekb6yYsN-DDqyKmXkn_B3f1KjJPGh93F7wKWeOcEvHSSzDi64g/exec";
+const API = "https://script.google.com/macros/s/AKfycbxxNjLhLFUMpmTDQ8HZekb6yYsN-DDqyKmXkn_B3f1KjJPGh93F7wKWeOcEvHSSzDi64g/exec";
 
 // =====================
 // PARÁMETROS
@@ -12,210 +11,194 @@ const servicio = params.get("servicio");
 let chart = null;
 
 // =====================
-// UI
+// UI E INICIALIZACIÓN
 // =====================
-document.getElementById("detalle").innerText =
-  `${cliente} · ${servicio} · ${anio}`;
+document.getElementById("detalle").innerText = `${cliente} · ${servicio} · ${anio}`;
 
 document.getElementById("btnTrimestral").onclick = cargarDashboard;
 document.getElementById("btnAnual").onclick = cargarAnalisisAnual;
 
+// Función para manejar el estado de los botones (marcar cuál está activo)
+function activar(id) {
+    document.getElementById("btnTrimestral").classList.remove("activo");
+    document.getElementById("btnAnual").classList.remove("activo");
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.add("activo");
+}
+
 window.onload = cargarDashboard;
 
 // =====================
-// HELPERS (CORREGIDOS)
+// HELPERS
 // =====================
 function normalizarPorcentaje(v) {
-  // Verificamos si es estrictamente null, undefined o NaN
-  if (v === null || v === undefined || isNaN(v)) return 0;
-  
-  // Si es 0, devolvemos 0 explícitamente para evitar que se trate como null
-  if (v === 0) return 0;
-
-  // Ajuste para valores decimales (ej: 0.05 -> 5%) o valores ya enteros
-  let num = Number(v);
-  if (Math.abs(num) < 1 && num !== 0) {
-    return parseFloat((num * 100).toFixed(2));
-  }
-  return parseFloat(num.toFixed(2));
+    if (v === null || v === undefined || isNaN(v)) return 0;
+    if (v === 0) return 0;
+    let num = Number(v);
+    // Si el número es un decimal muy pequeño (ej: 0.05) lo tratamos como porcentaje (5%)
+    if (Math.abs(num) < 1 && num !== 0) {
+        return parseFloat((num * 100).toFixed(2));
+    }
+    return parseFloat(num.toFixed(2));
 }
 
 function extraerTrimestre(periodo) {
-  if (!periodo) return "";
-  // Agregamos lógica más robusta: busca la "T" seguida de un número
-  const match = periodo.match(/T\d/);
-  return match ? match[0] : periodo; 
+    if (!periodo) return "";
+    const match = periodo.toString().match(/T\d/);
+    return match ? match[0] : periodo; 
 }
 
 // =====================
-// DASHBOARD TRIMESTRAL (REVISADO)
+// DASHBOARD TRIMESTRAL
 // =====================
 async function cargarDashboard() {
-  activar("btnTrimestral");
+    activar("btnTrimestral"); // Esto marca el botón de Trimestral
 
-  try {
-    const [histRes, inflRes] = await Promise.all([
-      fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`).then(r => r.json()),
-      fetch(`${API}?action=inflacion_trimestral&año=${anio}`).then(r => r.json())
-    ]);
+    try {
+        const [histRes, inflRes] = await Promise.all([
+            fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`).then(r => r.json()),
+            fetch(`${API}?action=inflacion_trimestral&año=${anio}`).then(r => r.json())
+        ]);
 
-    const historial = histRes.historial || [];
-    const inflacion = inflRes.inflacion || [];
+        const historial = histRes.historial || [];
+        const inflacion = inflRes.inflacion || [];
 
-    if (!historial.length) {
-      console.warn("No hay datos trimestrales");
-      return;
-    }
+        if (!historial.length) {
+            document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales para este año.</p>";
+            return;
+        }
 
-// 1. MAPA DE INFLACIÓN - Aseguramos que la key sea limpia y el valor sea numérico
-    const mapaInflacion = {};
-    if (inflacion && Array.isArray(inflacion)) {
+        const mapaInflacion = {};
         inflacion.forEach(i => {
-            // Extraemos el identificador (ej: "T1")
             const t = extraerTrimestre(i.periodo);
-            // Guardamos el valor forzando que sea número y no null
-            mapaInflacion[t] = normalizarPorcentaje(i.inflacion || 0);
+            mapaInflacion[t] = normalizarPorcentaje(i.inflacion);
         });
+
+        historial.forEach(h => {
+            const t = extraerTrimestre(h.periodo);
+            h.promedio  = Number(h.promedio) || 0;
+            h.variacion = normalizarPorcentaje(h.variacion);
+            h.inflacion = mapaInflacion[t] !== undefined ? mapaInflacion[t] : 0;
+            h.brecha    = parseFloat((h.variacion - h.inflacion).toFixed(2));
+        });
+
+        const u = historial[historial.length - 1];
+
+        renderKPIs([
+            { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
+            { titulo: "Variación trimestre", valor: `${u.variacion >= 0 ? "+" : ""}${u.variacion}%`, color: u.brecha >= 0 ? "verde" : "rojo" },
+            { titulo: "Inflación trimestre", valor: `${u.inflacion}%`, color: "amarillo" },
+            { titulo: "Brecha", valor: `${u.brecha >= 0 ? "+" : ""}${u.brecha}%`, color: u.brecha >= 0 ? "verde" : "rojo" }
+        ]);
+
+        renderGrafico(historial);
+    } catch (error) {
+        console.error("Error en dashboard trimestral:", error);
     }
-
-    // 2. VINCULACIÓN DE DATOS - Procesamos el historial
-    historial.forEach(h => {
-        const t = extraerTrimestre(h.periodo);
-        
-        // Limpieza de Promedio (evita el "NaN")
-        h.promedio = Number(h.promedio) || 0;
-        
-        // Limpieza de Variación (evita el "null %")
-        h.variacion = (h.variacion === null || h.variacion === undefined) ? 0 : normalizarPorcentaje(h.variacion);
-        
-        // Vinculamos la inflación usando el mapa anterior
-        // Si no existe inflación para ese periodo en el Excel, ponemos 0
-        h.inflacion = (mapaInflacion[t] !== undefined) ? mapaInflacion[t] : 0;
-        
-        // Cálculo de Brecha (Variación - Inflación)
-        h.brecha = parseFloat((h.variacion - h.inflacion).toFixed(2));
-    });
-
-    // 3. OBTENER ÚLTIMO REGISTRO (para los KPIs)
-    // Usamos .at(-1) que es más moderno o historial[length-1]
-    const u = historial.length > 0 ? historial[historial.length - 1] : { promedio: 0, variacion: 0, inflacion: 0, brecha: 0 };
-    renderKPIs([
-      {
-        titulo: "Tarifa actual",
-        valor: `$ ${u.promedio.toLocaleString("es-AR")}`,
-        color: "verde"
-      },
-      {
-        titulo: "Variación trimestre",
-        valor: `${u.variacion >= 0 ? "+" : ""}${u.variacion}%`, // Cambiado > por >= para incluir el 0
-        color: u.brecha >= 0 ? "verde" : "rojo"
-      },
-      {
-        titulo: "Inflación trimestre",
-        valor: `${u.inflacion}%`,
-        color: "amarillo"
-      },
-      {
-        titulo: "Brecha",
-        valor: `${u.brecha >= 0 ? "+" : ""}${u.brecha}%`,
-        color: u.brecha >= 0 ? "verde" : "rojo"
-      }
-    ]);
-
-    renderGrafico(historial);
-  } catch (error) {
-    console.error("Error cargando dashboard:", error);
-  }
 }
 
 // =====================
 // ANÁLISIS ANUAL
 // =====================
 async function cargarAnalisisAnual() {
+    activar("btnAnual"); // Esto marca el botón de Anual
 
-  activar("btnAnual");
+    try {
+        const res = await fetch(`${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`);
+        const d = await res.json();
 
-  const res = await fetch(
-    `${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`
-  );
-  const d = await res.json();
+        if (d.error) {
+            alert("Error: " + d.error);
+            return;
+        }
 
-  d.tarifa_enero     = Number(d.tarifa_enero ?? 0);
-  d.tarifa_diciembre = Number(d.tarifa_diciembre ?? 0);
-  d.variacion_anual  = normalizarPorcentaje(d.variacion_anual);
-  d.inflacion_anual  = normalizarPorcentaje(d.inflacion_anual);
-  d.brecha_anual     = +(d.variacion_anual - d.inflacion_anual).toFixed(2);
+        d.tarifa_enero     = Number(d.tarifa_enero) || 0;
+        d.tarifa_diciembre = Number(d.tarifa_diciembre) || 0;
+        d.variacion_anual  = normalizarPorcentaje(d.variacion_anual);
+        d.inflacion_anual  = normalizarPorcentaje(d.inflacion_anual);
+        d.brecha_anual     = parseFloat((d.variacion_anual - d.inflacion_anual).toFixed(2));
 
-  renderKPIs([
-    { titulo: "Tarifa Enero",     valor: `$ ${d.tarifa_enero.toLocaleString("es-AR")}`, color: "verde" },
-    { titulo: "Tarifa Diciembre", valor: `$ ${d.tarifa_diciembre.toLocaleString("es-AR")}`, color: "verde" },
-    { titulo: "Variación anual",  valor: `${d.variacion_anual}%`, color: "amarillo" },
-    { titulo: "Inflación anual",  valor: `${d.inflacion_anual}%`, color: "amarillo" },
-    { titulo: "Brecha anual",     valor: `${d.brecha_anual}%`, color: d.brecha_anual >= 0 ? "verde" : "rojo" }
-  ]);
+        renderKPIs([
+            { titulo: "Tarifa Enero", valor: `$ ${d.tarifa_enero.toLocaleString("es-AR")}`, color: "verde" },
+            { titulo: "Tarifa Diciembre", valor: `$ ${d.tarifa_diciembre.toLocaleString("es-AR")}`, color: "verde" },
+            { titulo: "Variación anual", valor: `${d.variacion_anual}%`, color: "amarillo" },
+            { titulo: "Inflación anual", valor: `${d.inflacion_anual}%`, color: "amarillo" },
+            { titulo: "Brecha anual", valor: `${d.brecha_anual >= 0 ? "+" : ""}${d.brecha_anual}%`, color: d.brecha_anual >= 0 ? "verde" : "rojo" }
+        ]);
 
-  renderGraficoAnual(d);
+        renderGraficoAnual(d);
+    } catch (error) {
+        console.error("Error en análisis anual:", error);
+    }
 }
 
 // =====================
-// KPIs
+// RENDERIZADO
 // =====================
 function renderKPIs(kpis) {
-  const c = document.getElementById("kpis");
-  c.innerHTML = "";
-  kpis.forEach(k => {
-    c.innerHTML += `
-      <div class="kpi ${k.color}">
-        <small>${k.titulo}</small>
-        <h2>${k.valor}</h2>
-      </div>`;
-  });
+    const c = document.getElementById("kpis");
+    c.innerHTML = "";
+    kpis.forEach(k => {
+        c.innerHTML += `
+            <div class="kpi ${k.color}">
+                <small>${k.titulo}</small>
+                <h2>${k.valor}</h2>
+            </div>`;
+    });
 }
 
-// =====================
-// GRÁFICOS
-// =====================
 function renderGrafico(hist) {
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("grafico"), {
-    type: "line",
-    data: {
-      labels: hist.map(h => h.periodo),
-      datasets: [
-        {
-          label: "Variación %",
-          data: hist.map(h => h.variacion),
-          borderColor: "#ff7a18",
-          tension: .3
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("grafico"), {
+        type: "line",
+        data: {
+            labels: hist.map(h => h.periodo),
+            datasets: [
+                {
+                    label: "Variación Tarifa %",
+                    data: hist.map(h => h.variacion),
+                    borderColor: "#ff7a18",
+                    backgroundColor: "#ff7a18",
+                    tension: .3
+                },
+                {
+                    label: "Inflación %",
+                    data: hist.map(h => h.inflacion),
+                    borderColor: "#4dd0e1",
+                    borderDash: [6, 6],
+                    tension: .3
+                }
+            ]
         },
-        {
-          label: "Inflación %",
-          data: hist.map(h => h.inflacion),
-          borderColor: "#4dd0e1",
-          borderDash: [6,6],
-          tension: .3
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: "#fff" } } },
+            scales: {
+                y: { ticks: { color: "#aaa" } },
+                x: { ticks: { color: "#aaa" } }
+            }
         }
-      ]
-    }
-  });
+    });
 }
 
 function renderGraficoAnual(d) {
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("grafico"), {
-    type: "bar",
-    data: {
-      labels: ["Variación tarifa", "Inflación"],
-      datasets: [{
-        label: "Comparación anual %",
-        data: [d.variacion_anual, d.inflacion_anual],
-        backgroundColor: ["#ff7a18", "#4dd0e1"]
-      }]
-    }
-  });
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("grafico"), {
+        type: "bar",
+        data: {
+            labels: ["Variación Tarifa", "Inflación"],
+            datasets: [{
+                label: "Comparación Anual %",
+                data: [d.variacion_anual, d.inflacion_anual],
+                backgroundColor: ["#ff7a18", "#4dd0e1"]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: "#fff" } } },
+            scales: {
+                y: { ticks: { color: "#aaa" }, beginAtZero: true }
+            }
+        }
+    });
 }
-
