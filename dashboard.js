@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycby7H9J4_CS8BUBi4WAR2xro_qY26tqRlnUxlhVHVX4YBEbJlh8xSlSYO67YDj1b0sGFUg/exec";
+const API = "https://script.google.com/macros/s/AKfycbzy4SQMBOXPZsl5E3JvRyG-Vlt9ul_lOY1cOGFN6JgAv91nDl95_ZssX2rsl4i0_kIpvQ/exec";
 
 // =====================
 // PARÁMETROS

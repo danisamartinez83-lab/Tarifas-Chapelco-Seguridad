@@ -206,7 +206,7 @@ canvas {
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycby7H9J4_CS8BUBi4WAR2xro_qY26tqRlnUxlhVHVX4YBEbJlh8xSlSYO67YDj1b0sGFUg/exec";
+const API = "https://script.google.com/macros/s/AKfycbzy4SQMBOXPZsl5E3JvRyG-Vlt9ul_lOY1cOGFN6JgAv91nDl95_ZssX2rsl4i0_kIpvQ/exec";
 
 const clienteEl = () => document.getElementById("cliente");
 const anioEl = () => document.getElementById("anio");
@@ -429,17 +429,23 @@ chartVariacion = new Chart(graficoVariacion, {
 }
 // Este código maneja el botón de exportación masiva
 document.getElementById("btnExportarMasivo").onclick = function() {
-    // Usamos los IDs exactos de tus selectores: 'anio' y 'mes'
     const anioSeleccionado = document.getElementById("anio").value; 
     const mesSeleccionado = document.getElementById("mes").value;
 
     if (!anioSeleccionado || !mesSeleccionado) {
-        alert("Por favor, selecciona un Año y un Mes para generar el reporte masivo.");
+        alert("Por favor, selecciona un Año y un Mes.");
         return;
     }
 
     const url = `${API}?action=exportar_mensual&año=${anioSeleccionado}&mes=${mesSeleccionado}`;
-    window.open(url, "_blank");
+    
+    // En móviles, window.location.href suele ser más efectivo que window.open
+    // para evitar que el navegador bloquee la pestaña como "pop-up"
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        window.location.href = url;
+    } else {
+        window.open(url, "_blank");
+    }
 };
 function abrirDashboard() {
   const cliente = clienteEl().value;
