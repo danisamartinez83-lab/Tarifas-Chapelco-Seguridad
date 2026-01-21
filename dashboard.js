@@ -52,7 +52,7 @@ function extraerTrimestre(periodo) {
 // DASHBOARD TRIMESTRAL
 // =====================
 async function cargarDashboard() {
-    activar("btnTrimestral");
+    activar("btnTrimestral"); 
 
     try {
         const [histRes, inflRes] = await Promise.all([
@@ -61,46 +61,49 @@ async function cargarDashboard() {
         ]);
 
         const historial = histRes.historial || [];
-        const inflacion = inflRes.inflacion || [];
+        const datosReferencia = inflRes.inflacion || []; // Contiene inflación y salarios
 
         if (!historial.length) {
             document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales para este año.</p>";
             return;
         }
 
-        // Creamos mapas para cruzar datos fácilmente
-        const mapaInflacion = {};
-        const mapaSalarios = {};
-        
-        inflacion.forEach(i => {
+        // Creamos mapas para cruzar datos por trimestre (T1, T2, etc.)
+        const mapaRef = {};
+        datosReferencia.forEach(i => {
             const t = extraerTrimestre(i.periodo);
-            mapaInflacion[t] = normalizarPorcentaje(i.inflacion);
-            mapaSalarios[t] = normalizarPorcentaje(i.salario); // <--- Nuevo: Captura salarios
+            mapaRef[t] = {
+                inf: normalizarPorcentaje(i.inflacion),
+                sal: normalizarPorcentaje(i.salario) // Asegúrate que el GS envíe 'salario'
+            };
         });
 
         historial.forEach(h => {
             const t = extraerTrimestre(h.periodo);
+            const ref = mapaRef[t] || { inf: 0, sal: 0 };
+            
             h.promedio  = Number(h.promedio) || 0;
             h.variacion = normalizarPorcentaje(h.variacion);
-            h.inflacion = mapaInflacion[t] || 0;
-            h.salario   = mapaSalarios[t] || 0; // <--- Nuevo: Asigna salario
+            h.inflacion = ref.inf;
+            h.salario   = ref.sal; 
             
-            // Calculamos ambas brechas
-            h.brecha = parseFloat((h.variacion - h.inflacion).toFixed(2));
-            h.brechaSalario = parseFloat((h.variacion - h.salario).toFixed(2)); // <--- Nuevo: Brecha salario
+            // Cálculos de brecha
+            h.brechaInf = parseFloat((h.variacion - h.inflacion).toFixed(2));
+            h.brechaSal = parseFloat((h.variacion - h.salario).toFixed(2));
         });
 
+        // Tomamos el último trimestre disponible (ej: T4)
         const u = historial[historial.length - 1];
 
-        // Mostramos los 4 KPIs clave
+        // RENDER DE KPIs: Limpio y sin duplicados
         renderKPIs([
             { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Brecha vs Inflación", valor: `${u.brecha >= 0 ? "+" : ""}${u.brecha}%`, color: u.brecha >= 0 ? "verde" : "rojo" },
-            { titulo: "Brecha vs Salarios", valor: `${u.brechaSalario >= 0 ? "+" : ""}${u.brechaSalario}%`, color: u.brechaSalario >= 0 ? "verde" : "rojo" },
-            { titulo: "Salario Trimestre", valor: `${u.salario}%`, color: "amarillo" }
+            { titulo: "Brecha vs Inflación", valor: `${u.brechaInf >= 0 ? "+" : ""}${u.brechaInf}%`, color: u.brechaInf >= 0 ? "verde" : "rojo" },
+            { titulo: "Brecha vs Salarios", valor: `${u.brechaSal >= 0 ? "+" : ""}${u.brechaSal}%`, color: u.brechaSal >= 0 ? "verde" : "rojo" },
+            { titulo: "Aumento Salarial (T)", valor: `${u.salario}%`, color: "amarillo" }
         ]);
 
-        renderGrafico(historial); // Asegúrate que renderGrafico use h.salario para la línea azul
+        renderGrafico(historial);
     } catch (error) {
         console.error("Error en dashboard trimestral:", error);
     }
@@ -204,14 +207,20 @@ function renderGrafico(hist) {
                     borderDash: [6, 6],
                     tension: .3
                 },
-              
+                {
+                    label: "Salarios %",
+                    data: hist.map(h => h.salario), // <--- Línea de salarios
+                    borderColor: "#2196f3",
+                    tension: .3
+                }
             ]
         },
         options: {
             responsive: true,
-            plugins: { legend: { labels: { color: "#fff" } } },
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: "#aaa" } } },
             scales: {
-                y: { ticks: { color: "#aaa" } },
+                y: { ticks: { color: "#aaa" }, grid: { color: "#333" } },
                 x: { ticks: { color: "#aaa" } }
             }
         }
