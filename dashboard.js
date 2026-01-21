@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbzq2svt_8cIAjTt7zBtHHSeUWs_2mAdEWEwL_zNfCM92oUrJTv-fBmIoptRBK42K_hFVA/exec";
+const API = "https://script.google.com/macros/s/AKfycbxtN4SPGyNzx-R8z4WS-NdnOIqC_IiO5j9G28VRuJXvOBQT8RMY0VTctxvHwkSPv32R8w/exec";
 
 // =====================
 // PARÁMETROS
@@ -52,7 +52,7 @@ function extraerTrimestre(periodo) {
 // DASHBOARD TRIMESTRAL
 // =====================
 async function cargarDashboard() {
-    activar("btnTrimestral"); // Esto marca el botón de Trimestral
+    activar("btnTrimestral");
 
     try {
         const [histRes, inflRes] = await Promise.all([
@@ -68,30 +68,39 @@ async function cargarDashboard() {
             return;
         }
 
+        // Creamos mapas para cruzar datos fácilmente
         const mapaInflacion = {};
+        const mapaSalarios = {};
+        
         inflacion.forEach(i => {
             const t = extraerTrimestre(i.periodo);
             mapaInflacion[t] = normalizarPorcentaje(i.inflacion);
+            mapaSalarios[t] = normalizarPorcentaje(i.salario); // <--- Nuevo: Captura salarios
         });
 
         historial.forEach(h => {
             const t = extraerTrimestre(h.periodo);
             h.promedio  = Number(h.promedio) || 0;
             h.variacion = normalizarPorcentaje(h.variacion);
-            h.inflacion = mapaInflacion[t] !== undefined ? mapaInflacion[t] : 0;
-            h.brecha    = parseFloat((h.variacion - h.inflacion).toFixed(2));
+            h.inflacion = mapaInflacion[t] || 0;
+            h.salario   = mapaSalarios[t] || 0; // <--- Nuevo: Asigna salario
+            
+            // Calculamos ambas brechas
+            h.brecha = parseFloat((h.variacion - h.inflacion).toFixed(2));
+            h.brechaSalario = parseFloat((h.variacion - h.salario).toFixed(2)); // <--- Nuevo: Brecha salario
         });
 
         const u = historial[historial.length - 1];
 
+        // Mostramos los 4 KPIs clave
         renderKPIs([
             { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Variación trimestre", valor: `${u.variacion >= 0 ? "+" : ""}${u.variacion}%`, color: u.brecha >= 0 ? "verde" : "rojo" },
-            { titulo: "Inflación trimestre", valor: `${u.inflacion}%`, color: "amarillo" },
-            { titulo: "Brecha", valor: `${u.brecha >= 0 ? "+" : ""}${u.brecha}%`, color: u.brecha >= 0 ? "verde" : "rojo" }
+            { titulo: "Brecha vs Inflación", valor: `${u.brecha >= 0 ? "+" : ""}${u.brecha}%`, color: u.brecha >= 0 ? "verde" : "rojo" },
+            { titulo: "Brecha vs Salarios", valor: `${u.brechaSalario >= 0 ? "+" : ""}${u.brechaSalario}%`, color: u.brechaSalario >= 0 ? "verde" : "rojo" },
+            { titulo: "Salario Trimestre", valor: `${u.salario}%`, color: "amarillo" }
         ]);
 
-        renderGrafico(historial);
+        renderGrafico(historial); // Asegúrate que renderGrafico use h.salario para la línea azul
     } catch (error) {
         console.error("Error en dashboard trimestral:", error);
     }
@@ -101,7 +110,7 @@ async function cargarDashboard() {
 // ANÁLISIS ANUAL
 // =====================
 async function cargarAnalisisAnual() {
-    activar("btnAnual"); // Esto marca el botón de Anual
+    activar("btnAnual");
 
     try {
         const res = await fetch(`${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`);
@@ -112,18 +121,21 @@ async function cargarAnalisisAnual() {
             return;
         }
 
-        d.tarifa_enero     = Number(d.tarifa_enero) || 0;
-        d.tarifa_diciembre = Number(d.tarifa_diciembre) || 0;
-        d.variacion_anual  = normalizarPorcentaje(d.variacion_anual);
-        d.inflacion_anual  = normalizarPorcentaje(d.inflacion_anual);
-        d.brecha_anual     = parseFloat((d.variacion_anual - d.inflacion_anual).toFixed(2));
+        // Normalizamos datos del servidor
+        d.variacion_anual = normalizarPorcentaje(d.variacion_anual);
+        d.inflacion_anual = normalizarPorcentaje(d.inflacion_anual);
+        d.variacion_salario_anual = normalizarPorcentaje(d.variacion_salario_anual);
+        
+        // Calculamos brechas anuales
+        const bAnualInf = parseFloat((d.variacion_anual - d.inflacion_anual).toFixed(2));
+        const bAnualSal = parseFloat((d.variacion_anual - d.variacion_salario_anual).toFixed(2));
 
         renderKPIs([
-            { titulo: "Tarifa Enero", valor: `$ ${d.tarifa_enero.toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Tarifa Diciembre", valor: `$ ${d.tarifa_diciembre.toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Variación anual", valor: `${d.variacion_anual}%`, color: "amarillo" },
-            { titulo: "Inflación anual", valor: `${d.inflacion_anual}%`, color: "amarillo" },
-            { titulo: "Brecha anual", valor: `${d.brecha_anual >= 0 ? "+" : ""}${d.brecha_anual}%`, color: d.brecha_anual >= 0 ? "verde" : "rojo" }
+            { titulo: "Brecha vs Inflación", valor: `${bAnualInf >= 0 ? "+" : ""}${bAnualInf}%`, color: bAnualInf >= 0 ? "verde" : "rojo" },
+            { titulo: "Brecha vs Salarios", valor: `${bAnualSal >= 0 ? "+" : ""}${bAnualSal}%`, color: bAnualSal >= 0 ? "verde" : "rojo" },
+            { titulo: "Aumento Salarial", valor: `${d.variacion_salario_anual}%`, color: "amarillo" },
+            { titulo: "Aumento Tarifario", valor: `${d.variacion_anual}%`, color: "amarillo" },
+            { titulo: "Tarifa Diciembre", valor: `$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}`, color: "verde" }
         ]);
 
         renderGraficoAnual(d);
