@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbyFEdKgYTBg_UwAjB7Rrm9n7H8Au2lsCppVmMDMZB8X9_oKtMkbEHItSwtDoGKcRKrMMQ/exec";
+const API = "https://script.google.com/macros/s/AKfycbzbJXAFOLJn6-PL2-i2TKCz1czgJCtokr8nMHGWGTBY1R3wFjJqNCr4x_C0Iatb0gglsQ/exec";
 
 // =====================
 // PARÁMETROS
@@ -93,15 +93,15 @@ async function cargarDashboard() {
         });
 
         // Tomamos el último trimestre disponible (ej: T4)
-        const u = historial[historial.length - 1];
+     // Dentro de cargarDashboard()
+const u = historial[historial.length - 1]; // u es el último trimestre (ej: T4)
 
-        // RENDER DE KPIs: Limpio y sin duplicados
-        renderKPIs([
-            { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Brecha vs Inflación", valor: `${u.brechaInf >= 0 ? "+" : ""}${u.brechaInf}%`, color: u.brechaInf >= 0 ? "verde" : "rojo" },
-            { titulo: "Brecha vs Salarios", valor: `${u.brechaSal >= 0 ? "+" : ""}${u.brechaSal}%`, color: u.brechaSal >= 0 ? "verde" : "rojo" },
-            { titulo: "Aumento Salarial (T)", valor: `${u.salario}%`, color: "amarillo" }
-        ]);
+renderKPIs([
+    { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
+    { titulo: "Variación Tarifa (T)", valor: `${u.variacion}%`, color: "amarillo" },
+    { titulo: "Aumento Salarial (T)", valor: `${u.salario}%`, color: "amarillo" }, // Aquí saldrá tu 5,6%
+    { titulo: "Brecha vs Salario", valor: `${u.brechaSalario >= 0 ? "+" : ""}${u.brechaSalario}%`, color: u.brechaSalario >= 0 ? "verde" : "rojo" }
+]);
 
         renderGrafico(historial);
     } catch (error) {
