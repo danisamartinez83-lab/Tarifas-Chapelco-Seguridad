@@ -48,11 +48,8 @@ function extraerTrimestre(periodo) {
     return match ? match[0] : periodo; 
 }
 
-// =====================
-// DASHBOARD TRIMESTRAL
-// =====================
 async function cargarDashboard() {
-    activar("btnTrimestral"); 
+    activar("btnTrimestral");
 
     try {
         const [histRes, inflRes] = await Promise.all([
@@ -61,36 +58,64 @@ async function cargarDashboard() {
         ]);
 
         const historial = histRes.historial || [];
-        const datosReferencia = inflRes.inflacion || []; // Contiene inflación y salarios
+        const datosRef = inflRes.inflacion || [];
 
         if (!historial.length) {
-            document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales para este año.</p>";
+            document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales.</p>";
             return;
         }
 
-        // Creamos mapas para cruzar datos por trimestre (T1, T2, etc.)
+        // Mapeamos los datos para cruzarlos
         const mapaRef = {};
-        datosReferencia.forEach(i => {
-            const t = extraerTrimestre(i.periodo);
-            mapaRef[t] = {
-                inf: normalizarPorcentaje(i.inflacion),
-                sal: normalizarPorcentaje(i.salario) // Asegúrate que el GS envíe 'salario'
-            };
+        datosRef.forEach(d => {
+            mapaRef[d.periodo] = { inf: d.inflacion, sal: d.salario };
         });
 
         historial.forEach(h => {
             const t = extraerTrimestre(h.periodo);
             const ref = mapaRef[t] || { inf: 0, sal: 0 };
-            
-            h.promedio  = Number(h.promedio) || 0;
             h.variacion = normalizarPorcentaje(h.variacion);
-            h.inflacion = ref.inf;
-            h.salario   = ref.sal; 
-            
-            // Cálculos de brecha
-            h.brechaInf = parseFloat((h.variacion - h.inflacion).toFixed(2));
-            h.brechaSal = parseFloat((h.variacion - h.salario).toFixed(2));
+            h.inflacion = normalizarPorcentaje(ref.inf);
+            h.salario   = normalizarPorcentaje(ref.sal);
         });
+
+        // Tomamos el último trimestre para los KPIs (T4 por ejemplo)
+        const u = historial[historial.length - 1];
+
+        // CALCULAMOS LAS BRECHAS (Diferencia porcentual)
+        const brechaInflacion = parseFloat((u.variacion - u.inflacion).toFixed(2));
+        const brechaSalario = parseFloat((u.variacion - u.salario).toFixed(2));
+
+        // RENDERIZAMOS LOS KPIs
+        const contenedor = document.getElementById("kpis");
+        contenedor.innerHTML = `
+            <div class="kpi amarillo">
+                <small>Variación Tarifa</small>
+                <h2>${u.variacion}%</h2>
+            </div>
+            <div class="kpi amarillo">
+                <small>Inflación (T)</small>
+                <h2>${u.inflacion}%</h2>
+            </div>
+            <div class="kpi amarillo">
+                <small>Aumento Salarial (T)</small>
+                <h2>${u.salario}%</h2>
+            </div>
+            <div class="kpi ${brechaInflacion >= 0 ? 'verde' : 'rojo'}">
+                <small>Brecha vs Inflación</small>
+                <h2>${brechaInflacion > 0 ? '+' : ''}${brechaInflacion}%</h2>
+            </div>
+            <div class="kpi ${brechaSalario >= 0 ? 'verde' : 'rojo'}">
+                <small>Brecha vs Salario</small>
+                <h2>${brechaSalario > 0 ? '+' : ''}${brechaSalario}%</h2>
+            </div>
+        `;
+
+        renderGrafico(historial);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
 
         // Tomamos el último trimestre disponible (ej: T4)
    // Tomamos el último trimestre disponible (ej: T4)
@@ -123,11 +148,7 @@ async function cargarDashboard() {
             `;
         }
 
-        renderGrafico(historial);
-    } catch (error) {
-        console.error("Error en dashboard trimestral:", error);
-    }
-}
+   
 
 // =====================
 // ANÁLISIS ANUAL
