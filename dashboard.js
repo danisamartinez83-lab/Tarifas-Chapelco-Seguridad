@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbzy4SQMBOXPZsl5E3JvRyG-Vlt9ul_lOY1cOGFN6JgAv91nDl95_ZssX2rsl4i0_kIpvQ/exec";
+const API = "https://script.google.com/macros/s/AKfycbwUB7Y1OBclpLAjfnhrnnX41LuU9L-wYzbcVmFSFj4B800zWX2qbQ716SSuffmw6mPuXg/exec";
 
 // =====================
 // PARÁMETROS
@@ -131,6 +131,30 @@ async function cargarAnalisisAnual() {
         console.error("Error en análisis anual:", error);
     }
 }
+function actualizarDashboard(d) {
+    const contenedor = document.getElementById("kpis");
+    
+    // Calculamos brechas
+    const brechaInf = d.brecha_anual;
+    const brechaSal = d.brecha_vs_salario;
+
+    contenedor.innerHTML = `
+        <div class="kpi ${brechaInf >= 0 ? 'verde' : 'rojo'}">
+            <small>Brecha vs Inflación</small>
+            <h2>${brechaInf > 0 ? '+' : ''}${brechaInf}%</h2>
+        </div>
+        <div class="kpi ${brechaSal >= 0 ? 'verde' : 'rojo'}">
+            <small>Brecha vs Salarios</small>
+            <h2>${brechaSal > 0 ? '+' : ''}${brechaSal}%</h2>
+        </div>
+        <div class="kpi amarillo">
+            <small>Tarifa Final</small>
+            <h2>$${d.tarifa_diciembre.toLocaleString("es-AR")}</h2>
+        </div>
+    `;
+
+    renderGraficoAnual(d);
+}
 
 // =====================
 // RENDERIZADO
@@ -167,7 +191,8 @@ function renderGrafico(hist) {
                     borderColor: "#4dd0e1",
                     borderDash: [6, 6],
                     tension: .3
-                }
+                },
+              
             ]
         },
         options: {
@@ -183,26 +208,63 @@ function renderGrafico(hist) {
 
 function renderGraficoAnual(d) {
     if (chart) chart.destroy();
+    
+    const varSalario = d.variacion_salario_anual || 0;
+
     chart = new Chart(document.getElementById("grafico"), {
         type: "bar",
         data: {
-            labels: ["Variación Tarifa", "Inflación"],
-            datasets: [{
-                label: "Comparación Anual %",
-                data: [d.variacion_anual, d.inflacion_anual],
-                backgroundColor: ["#ff7a18", "#4dd0e1"]
-            }]
+            labels: ["Comparativa Anual"], // Etiqueta base
+            datasets: [
+                {
+                    label: "Variación Tarifa",
+                    data: [d.variacion_anual],
+                    backgroundColor: "#ff7a18",
+                    borderRadius: 5
+                },
+                {
+                    label: "Inflación",
+                    data: [d.inflacion_anual],
+                    backgroundColor: "#4dd0e1",
+                    borderRadius: 5
+                },
+                {
+                    label: "Salarios",
+                    data: [varSalario],
+                    backgroundColor: "#2196f3",
+                    borderRadius: 5
+                }
+            ]
         },
-       options: {
-    responsive: true,
-    maintainAspectRatio: false, // Vital para que use el alto definido en CSS
-    plugins: {
-        legend: {
-            position: 'bottom', // En celular es mejor tener la leyenda abajo
-            labels: { boxWidth: 10, font: { size: 11 } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { size: 12 }, color: '#aaa', padding: 20 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => ` ${context.dataset.label}: ${context.raw}%`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { 
+                        color: '#aaa',
+                        callback: (value) => value + '%' // Añade símbolo % al eje Y
+                    },
+                    grid: { color: '#333' }
+                },
+                x: {
+                    ticks: { color: '#aaa', display: false } // Ocultamos el label repetitivo
+                }
+            }
         }
-    }
-}
     });
 }
 document.getElementById("btnPDF").onclick = () => {
