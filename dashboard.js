@@ -93,15 +93,35 @@ async function cargarDashboard() {
         });
 
         // Tomamos el último trimestre disponible (ej: T4)
-     // Dentro de cargarDashboard()
-const u = historial[historial.length - 1]; // u es el último trimestre (ej: T4)
+   // Tomamos el último trimestre disponible (ej: T4)
+        const u = historial[historial.length - 1];
 
-renderKPIs([
-    { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
-    { titulo: "Variación Tarifa (T)", valor: `${u.variacion}%`, color: "amarillo" },
-    { titulo: "Aumento Salarial (T)", valor: `${u.salario}%`, color: "amarillo" }, // Aquí saldrá tu 5,6%
-    { titulo: "Brecha vs Salario", valor: `${u.brechaSalario >= 0 ? "+" : ""}${u.brechaSalario}%`, color: u.brechaSalario >= 0 ? "verde" : "rojo" }
-]);
+        // 1. KPIs SUPERIORES (Valores puros del trimestre)
+        renderKPIs([
+            { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
+            { titulo: "Variación Tarifa (T)", valor: `${u.variacion}%`, color: "amarillo" },
+            { titulo: "Inflación (T)", valor: `${u.inflacion}%`, color: "amarillo" },
+            { titulo: "Aumento Salarial (T)", valor: `${u.salario}%`, color: "amarillo" }
+        ]);
+
+        // 2. KPIs INFERIORES (Brechas debajo del gráfico)
+        // Buscamos o creamos un contenedor para las brechas debajo del canvas
+        const contenedorBrechas = document.getElementById("brechas-detalle");
+        if (contenedorBrechas) {
+            const bInf = parseFloat((u.variacion - u.inflacion).toFixed(2));
+            const bSal = parseFloat((u.variacion - u.salario).toFixed(2));
+            
+            contenedorBrechas.innerHTML = `
+                <div class="kpi-mini ${bInf >= 0 ? 'verde' : 'rojo'}">
+                    <small>Brecha vs Inflación</small>
+                    <h3>${bInf > 0 ? '+' : ''}${bInf}%</h3>
+                </div>
+                <div class="kpi-mini ${bSal >= 0 ? 'verde' : 'rojo'}">
+                    <small>Brecha vs Salarios</small>
+                    <h3>${bSal > 0 ? '+' : ''}${bSal}%</h3>
+                </div>
+            `;
+        }
 
         renderGrafico(historial);
     } catch (error) {

@@ -124,6 +124,37 @@ canvas {
     grid-template-columns: 1fr;
   }
 }
+/* Estilos para las Brechas en el Dashboard */
+.brechas-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.kpi-brecha {
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  border-bottom: 3px solid #444;
+}
+
+.kpi-brecha.verde { border-color: #4caf50; }
+.kpi-brecha.rojo { border-color: #f44336; }
+
+.kpi-brecha h4 {
+  margin: 0;
+  font-size: 12px;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.kpi-brecha p {
+  margin: 5px 0 0 0;
+  font-size: 20px;
+  font-weight: bold;
+}
 </style>
 </head>
 
@@ -451,21 +482,16 @@ function abrirDashboard() {
   const cliente = clienteEl().value;
   const anio = anioEl().value;
   const servicio = document.getElementById("servicioHistorial").value;
-  const periodo = document.getElementById("periodo").value;
 
-  if (!cliente || !anio || !servicio || !periodo) {
-    alert("Completá cliente, año, servicio y período");
+  if (!cliente || !anio || !servicio) {
+    alert("Por favor, seleccioná Cliente, Año y un Servicio del historial primero.");
     return;
   }
 
-const url =
-  `dashboard.html?cliente=${encodeURIComponent(cliente)}` +
-  `&anio=${encodeURIComponent(anio)}` +
-  `&servicio=${encodeURIComponent(servicio)}` +
-  `&periodo=${encodeURIComponent(periodo)}`;
+  // Generamos la URL. El periodo lo manejamos dentro del dashboard.html por defecto.
+  const url = `dashboard.html?cliente=${encodeURIComponent(cliente)}&anio=${encodeURIComponent(anio)}&servicio=${encodeURIComponent(servicio)}`;
 
-window.open(url, "_blank");
-
+  window.open(url, "_blank");
 }
 
 
