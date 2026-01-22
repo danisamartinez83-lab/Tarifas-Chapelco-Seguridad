@@ -487,6 +487,7 @@ chartVariacion = new Chart(graficoVariacion, {
   }
 });
 }
+
 // Este código maneja el botón de exportación masiva
 document.getElementById("btnExportarMasivo").onclick = function() {
     const anio = document.getElementById("anio").value; 
@@ -507,6 +508,85 @@ document.getElementById("btnExportarMasivo").onclick = function() {
     link.rel = 'noopener noreferrer';
     link.click();
 };
+function exportarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // 1. Obtener datos de los filtros
+  const cliente = document.getElementById("cliente").value || "Sin Cliente";
+  const servicio = document.getElementById("servicioHistorial").value || "Sin Servicio";
+  const anio = document.getElementById("anio").value || "";
+  const periodo = document.getElementById("periodo").value || "";
+
+  // 2. Encabezado del Reporte
+  doc.setFontSize(20);
+  doc.setTextColor(255, 122, 24); // Naranja Chapelco
+  doc.text("REPORTE HISTÓRICO DE TARIFAS", 14, 20);
+  
+  doc.setFontSize(11);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Cliente: ${cliente}`, 14, 30);
+  doc.text(`Servicio: ${servicio}`, 14, 37);
+  doc.text(`Año de Análisis: ${anio} | Período: ${periodo}`, 14, 44);
+  
+  // Línea decorativa naranja
+  doc.setDrawColor(255, 122, 24);
+  doc.line(14, 48, 196, 48);
+
+  // 3. Generar la Tabla desde el HTML
+  doc.autoTable({
+    html: '#tablaHistorial',
+    startY: 55,
+    theme: 'grid',
+    headStyles: { 
+      fillColor: [255, 122, 24], 
+      halign: 'center',
+      textColor: [255, 255, 255]
+    },
+    styles: { fontSize: 10, cellPadding: 3 },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    margin: { left: 14, right: 14 }
+  });
+
+  // 4. Agregar Gráficos (Si existen y tienen datos)
+  const canvasPromedio = document.getElementById("graficoHistorial");
+  const canvasVariacion = document.getElementById("graficoVariacion");
+
+  // Si hay gráficos, los agregamos en una página nueva
+  if (canvasPromedio && canvasVariacion) {
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.setTextColor(255, 122, 24);
+    doc.text("ANÁLISIS GRÁFICO", 14, 20);
+
+    // Convertir Gráfico de Promedio a Imagen
+    const imgPromedio = canvasPromedio.toDataURL("image/png");
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text("Evolución de la Tarifa Promedio:", 14, 30);
+    doc.addImage(imgPromedio, 'PNG', 14, 35, 180, 80);
+
+    // Convertir Gráfico de Variación a Imagen
+    const imgVariacion = canvasVariacion.toDataURL("image/png");
+    doc.text("Variación Porcentual por Período:", 14, 130);
+    doc.addImage(imgVariacion, 'PNG', 14, 135, 180, 80);
+  }
+
+  // 5. Pie de página con fecha de emisión
+  const fecha = new Date().toLocaleString();
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text(`Emitido el: ${fecha} - Página ${i} de ${pageCount}`, 14, 285);
+  }
+
+  // 6. Guardar el archivo
+  doc.save(`Reporte_Tarifas_${cliente}_${servicio}.pdf`);
+}
+
+  
 function abrirDashboard() {
   const cliente = clienteEl().value;
   const anio = anioEl().value;
