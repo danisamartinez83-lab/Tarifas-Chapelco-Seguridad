@@ -153,17 +153,14 @@ canvas {
 
 #kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Más columnas */
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
     margin-bottom: 20px;
-    width: 100%;
 }
 
-.kpi {
-    background: #242424;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
+.kpi h2 {
+    font-size: 24px;
+    margin: 5px 0;
 }
 
 .kpi.verde { border-left: 5px solid #4caf50; background: #1b2e1b; }
@@ -185,11 +182,7 @@ canvas {
     margin: 20px 0;
 }
 
-/* 4. Quita el límite de altura de los canvas para que crezcan */
-.grafico-box {
-    height: auto; 
-    min-height: 500px;
-}
+
 
 </style>
 </head>
@@ -260,13 +253,10 @@ canvas {
   <option value="semestral">Semestral</option>
   <option value="trimestral">Trimestral</option>
 </select>
-<div id="kpis"></div> 
 
-<div class="card" style="width: 100%;">
-    <div class="chart-container">
-        <canvas id="grafico"></canvas>
-    </div>
-</div>
+<div class="graficos">
+  <div class="grafico-box">
+    <canvas id="graficoHistorial"></canvas>
   </div>
   <div class="grafico-box">
     <canvas id="graficoVariacion"></canvas>
