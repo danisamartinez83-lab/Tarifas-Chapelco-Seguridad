@@ -166,6 +166,21 @@ canvas {
 .kpi.verde { border-left: 5px solid #4caf50; background: #1b2e1b; }
 .kpi.rojo { border-left: 5px solid #f44336; background: #2e1b1b; }
 .kpi.amarillo { border-left: 5px solid #ff7a18; background: #2e261b; }
+/* Asegura que el contenedor de brechas use el mismo diseño de cuadrícula que los KPIs de arriba */
+#brechas-detalle {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 25px;
+}
+
+/* Evita que el gráfico se colapse */
+.chart-container {
+    position: relative;
+    height: 350px; /* Aumentamos la altura */
+    width: 100%;
+    margin: 20px 0;
+}
 </style>
 </head>
 

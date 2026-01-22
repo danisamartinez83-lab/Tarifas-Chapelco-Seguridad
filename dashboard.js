@@ -160,43 +160,42 @@ async function cargarAnalisisAnual() {
         const res = await fetch(`${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`);
         const d = await res.json();
 
-        if (d.error) {
-            alert("Error: " + d.error);
-            return;
-        }
+        // Limpiamos valores para el cálculo
+        const vTarifa = normalizarPorcentaje(d.variacion_anual);
+        const vInfa = normalizarPorcentaje(d.inflacion_anual);
+        const vSalario = normalizarPorcentaje(d.variacion_salario_anual);
 
-        // 1. KPIs SUPERIORES (Valores nominales y totales)
+        // Corregimos cálculos de brecha (Diferencia real)
+        const bInf = parseFloat((vTarifa - vInfa).toFixed(1));
+        const bSal = parseFloat((vTarifa - vSalario).toFixed(1));
+
+        // 1. KPIs Superiores (Orden solicitado)
         renderKPIs([
             { titulo: "Tarifa Enero", valor: `$ ${Number(d.tarifa_enero).toLocaleString("es-AR")}`, color: "verde" },
             { titulo: "Tarifa Diciembre", valor: `$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Aumento Tarifario", valor: `${normalizarPorcentaje(d.variacion_anual)}%`, color: "amarillo" },
-            { titulo: "Inflación Anual", valor: `${normalizarPorcentaje(d.inflacion_anual)}%`, color: "amarillo" },
-            { titulo: "Aumento Salarial", valor: `${normalizarPorcentaje(d.variacion_salario_anual)}%`, color: "amarillo" }
+            { titulo: "Aumento Tarifario", valor: `${vTarifa}%`, color: "amarillo" },
+            { titulo: "Inflación Anual", valor: `${vInfa}%`, color: "amarillo" },
+            { titulo: "Aumento Salarial", valor: `${vSalario}%`, color: "amarillo" }
         ]);
 
-        // 2. CÁLCULO DE BRECHAS PARA EL DETALLE INFERIOR
-        const bInf = parseFloat((d.variacion_anual - d.inflacion_anual).toFixed(1));
-        const bSal = parseFloat((d.variacion_anual - d.variacion_salario_anual).toFixed(1));
-
-        // Inyectamos las brechas en el contenedor de abajo (el mismo que usamos en el trimestral)
+        // 2. Cuadros de Brecha Inferiores (Estilo igual a los de arriba)
         const contenedorBrechas = document.getElementById("brechas-detalle");
         if (contenedorBrechas) {
             contenedorBrechas.innerHTML = `
-                <div class="kpi-mini ${bInf >= 0 ? 'verde' : 'rojo'}">
-                    <small>Brecha vs Inflación Anual</small>
-                    <h3>${bInf > 0 ? '+' : ''}${bInf}%</h3>
+                <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}">
+                    <small>Brecha vs Inflación</small>
+                    <h2>${bInf > 0 ? '+' : ''}${bInf}%</h2>
                 </div>
-                <div class="kpi-mini ${bSal >= 0 ? 'verde' : 'rojo'}">
-                    <small>Brecha vs Salarios Anual</small>
-                    <h3>${bSal > 0 ? '+' : ''}${bSal}%</h3>
+                <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}">
+                    <small>Brecha vs Salarios</small>
+                    <h2>${bSal > 0 ? '+' : ''}${bSal}%</h2>
                 </div>
             `;
         }
 
         renderGraficoAnual(d);
-    } catch (error) {
-        console.error("Error en análisis anual:", error);
-    }
+    } catch (e) { console.error(e); }
+
 }
 function actualizarDashboard(d) {
     const contenedor = document.getElementById("kpis");
