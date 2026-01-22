@@ -1,24 +1,32 @@
 const API = "https://script.google.com/macros/s/AKfycbzbJXAFOLJn6-PL2-i2TKCz1czgJCtokr8nMHGWGTBY1R3wFjJqNCr4x_C0Iatb0gglsQ/exec";
 
 // =====================
-// PARÁMETROS
+// PARÁMETROS (Globales)
 // =====================
 const params = new URLSearchParams(window.location.search);
-const cliente  = params.get("cliente");
-const anio     = params.get("anio");
-const servicio = params.get("servicio");
+const cliente  = params.get("cliente") || "Cliente";
+const anio     = params.get("anio") || "2024";
+const servicio = params.get("servicio") || "Servicio";
 
 let chart = null;
 
 // =====================
 // UI E INICIALIZACIÓN
 // =====================
-document.getElementById("detalle").innerText = `${cliente} · ${servicio} · ${anio}`;
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById("detalle").innerText = `${cliente} · ${servicio} · ${anio}`;
+    document.getElementById("btnTrimestral").onclick = cargarDashboard;
+    document.getElementById("btnAnual").onclick = cargarAnalisisAnual;
+    
+    // Vinculación directa del botón PDF
+    const btnPDF = document.getElementById("btnPDF");
+    if (btnPDF) {
+        btnPDF.onclick = exportarReporteCompleto;
+    }
+    
+    cargarDashboard();
+});
 
-document.getElementById("btnTrimestral").onclick = cargarDashboard;
-document.getElementById("btnAnual").onclick = cargarAnalisisAnual;
-
-// Función para manejar el estado de los botones (marcar cuál está activo)
 function activar(id) {
     document.getElementById("btnTrimestral").classList.remove("activo");
     document.getElementById("btnAnual").classList.remove("activo");
@@ -26,19 +34,13 @@ function activar(id) {
     if (btn) btn.classList.add("activo");
 }
 
-window.onload = cargarDashboard;
-
 // =====================
 // HELPERS
 // =====================
 function normalizarPorcentaje(v) {
     if (v === null || v === undefined || isNaN(v)) return 0;
-    if (v === 0) return 0;
     let num = Number(v);
-    // Si el número es un decimal muy pequeño (ej: 0.05) lo tratamos como porcentaje (5%)
-    if (Math.abs(num) < 1 && num !== 0) {
-        return parseFloat((num * 100).toFixed(2));
-    }
+    if (Math.abs(num) < 1 && num !== 0) return parseFloat((num * 100).toFixed(2));
     return parseFloat(num.toFixed(2));
 }
 
@@ -48,9 +50,11 @@ function extraerTrimestre(periodo) {
     return match ? match[0] : periodo; 
 }
 
+// =====================
+// CARGA DE DATOS
+// =====================
 async function cargarDashboard() {
     activar("btnTrimestral");
-
     try {
         const [histRes, inflRes] = await Promise.all([
             fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`).then(r => r.json()),
@@ -61,15 +65,12 @@ async function cargarDashboard() {
         const datosRef = inflRes.inflacion || [];
 
         if (!historial.length) {
-            document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales.</p>";
+            document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales disponibles.</p>";
             return;
         }
 
-        // Mapeamos los datos para cruzarlos
         const mapaRef = {};
-        datosRef.forEach(d => {
-            mapaRef[d.periodo] = { inf: d.inflacion, sal: d.salario };
-        });
+        datosRef.forEach(d => { mapaRef[d.periodo] = { inf: d.inflacion, sal: d.salario }; });
 
         historial.forEach(h => {
             const t = extraerTrimestre(h.periodo);
@@ -79,174 +80,56 @@ async function cargarDashboard() {
             h.salario   = normalizarPorcentaje(ref.sal);
         });
 
-        // Tomamos el último trimestre para los KPIs (T4 por ejemplo)
         const u = historial[historial.length - 1];
+        const bInf = parseFloat((u.variacion - u.inflacion).toFixed(2));
+        const bSal = parseFloat((u.variacion - u.salario).toFixed(2));
 
-        // CALCULAMOS LAS BRECHAS (Diferencia porcentual)
-        const brechaInflacion = parseFloat((u.variacion - u.inflacion).toFixed(2));
-        const brechaSalario = parseFloat((u.variacion - u.salario).toFixed(2));
-
-        // RENDERIZAMOS LOS KPIs
-        const contenedor = document.getElementById("kpis");
-        contenedor.innerHTML = `
-            <div class="kpi amarillo">
-                <small>Variación Tarifa</small>
-                <h2>${u.variacion}%</h2>
-            </div>
-            <div class="kpi amarillo">
-                <small>Inflación (T)</small>
-                <h2>${u.inflacion}%</h2>
-            </div>
-            <div class="kpi amarillo">
-                <small>Aumento Salarial (T)</small>
-                <h2>${u.salario}%</h2>
-            </div>
-            <div class="kpi ${brechaInflacion >= 0 ? 'verde' : 'rojo'}">
-                <small>Brecha vs Inflación</small>
-                <h2>${brechaInflacion > 0 ? '+' : ''}${brechaInflacion}%</h2>
-            </div>
-            <div class="kpi ${brechaSalario >= 0 ? 'verde' : 'rojo'}">
-                <small>Brecha vs Salario</small>
-                <h2>${brechaSalario > 0 ? '+' : ''}${brechaSalario}%</h2>
-            </div>
+        document.getElementById("kpis").innerHTML = `
+            <div class="kpi verde"><small>Tarifa Promedio</small><h2>$ ${u.promedio.toLocaleString("es-AR")}</h2></div>
+            <div class="kpi amarillo"><small>Variación Tarifa</small><h2>${u.variacion}%</h2></div>
+            <div class="kpi amarillo"><small>Inflación (T)</small><h2>${u.inflacion}%</h2></div>
+            <div class="kpi amarillo"><small>Sueldos (T)</small><h2>${u.salario}%</h2></div>
+            <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}"><small>Brecha vs Infl.</small><h2>${bInf > 0 ? '+' : ''}${bInf}%</h2></div>
+            <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}"><small>Brecha vs Salario</small><h2>${bSal > 0 ? '+' : ''}${bSal}%</h2></div>
         `;
 
         renderGrafico(historial);
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error trimestral:", error);
     }
 }
 
-
-
-        // 1. KPIs SUPERIORES (Valores puros del trimestre)
-        renderKPIs([
-            { titulo: "Tarifa actual", valor: `$ ${u.promedio.toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Variación Tarifa (T)", valor: `${u.variacion}%`, color: "amarillo" },
-            { titulo: "Inflación (T)", valor: `${u.inflacion}%`, color: "amarillo" },
-            { titulo: "Aumento Salarial (T)", valor: `${u.salario}%`, color: "amarillo" }
-        ]);
-
-        // 2. KPIs INFERIORES (Brechas debajo del gráfico)
-        // Buscamos o creamos un contenedor para las brechas debajo del canvas
-        const contenedorBrechas = document.getElementById("brechas-detalle");
-        if (contenedorBrechas) {
-            const bInf = parseFloat((u.variacion - u.inflacion).toFixed(2));
-            const bSal = parseFloat((u.variacion - u.salario).toFixed(2));
-            
-            contenedorBrechas.innerHTML = `
-                <div class="kpi-mini ${bInf >= 0 ? 'verde' : 'rojo'}">
-                    <small>Brecha vs Inflación</small>
-                    <h3>${bInf > 0 ? '+' : ''}${bInf}%</h3>
-                </div>
-                <div class="kpi-mini ${bSal >= 0 ? 'verde' : 'rojo'}">
-                    <small>Brecha vs Salarios</small>
-                    <h3>${bSal > 0 ? '+' : ''}${bSal}%</h3>
-                </div>
-            `;
-        }
-
-   
-
-// =====================
-// ANÁLISIS ANUAL
-// =====================
 async function cargarAnalisisAnual() {
     activar("btnAnual");
-
     try {
         const res = await fetch(`${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`);
         const d = await res.json();
 
-        // 1. Normalizamos los valores (aseguramos que sean números)
-        const vTarifa = parseFloat(normalizarPorcentaje(d.variacion_anual));
-        const vInfa = parseFloat(normalizarPorcentaje(d.inflacion_anual));
-        const vSalario = parseFloat(normalizarPorcentaje(d.variacion_salario_anual));
-
-        // 2. Cálculo de Brechas (Diferencia porcentual)
+        const vTarifa = normalizarPorcentaje(d.variacion_anual);
+        const vInfa = normalizarPorcentaje(d.inflacion_anual);
+        const vSalario = normalizarPorcentaje(d.variacion_salario_anual);
         const bInf = parseFloat((vTarifa - vInfa).toFixed(1));
         const bSal = parseFloat((vTarifa - vSalario).toFixed(1));
 
-        // 3. Renderizamos los 7 KPIs en el orden solicitado
-        const contenedor = document.getElementById("kpis");
-        contenedor.innerHTML = `
-            <div class="kpi verde">
-                <small>Tarifa Enero</small>
-                <h2>$ ${Number(d.tarifa_enero).toLocaleString("es-AR")}</h2>
-            </div>
-            <div class="kpi verde">
-                <small>Tarifa Dic.</small>
-                <h2>$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}</h2>
-            </div>
-            <div class="kpi amarillo">
-                <small>Aumento Tarifa</small>
-                <h2>${vTarifa}%</h2>
-            </div>
-            <div class="kpi amarillo">
-                <small>Inflación Anual</small>
-                <h2>${vInfa}%</h2>
-            </div>
-            <div class="kpi amarillo">
-                <small>Aumento Salarial</small>
-                <h2>${vSalario}%</h2>
-            </div>
-            <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}">
-                <small>Brecha vs Infl.</small>
-                <h2>${bInf > 0 ? '+' : ''}${bInf}%</h2>
-            </div>
-            <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}">
-                <small>Brecha vs Salarios</small>
-                <h2>${bSal > 0 ? '+' : ''}${bSal}%</h2>
-            </div>
+        document.getElementById("kpis").innerHTML = `
+            <div class="kpi verde"><small>Tarifa Ene</small><h2>$ ${Number(d.tarifa_enero).toLocaleString("es-AR")}</h2></div>
+            <div class="kpi verde"><small>Tarifa Dic</small><h2>$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}</h2></div>
+            <div class="kpi amarillo"><small>Aumento Tarifa</small><h2>${vTarifa}%</h2></div>
+            <div class="kpi amarillo"><small>Inflación</small><h2>${vInfa}%</h2></div>
+            <div class="kpi amarillo"><small>Sueldos</small><h2>${vSalario}%</h2></div>
+            <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}"><small>Brecha Infl.</small><h2>${bInf > 0 ? '+' : ''}${bInf}%</h2></div>
+            <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}"><small>Brecha Salarios</small><h2>${bSal > 0 ? '+' : ''}${bSal}%</h2></div>
         `;
 
-        // 4. Llamamos al gráfico pasando los datos corregidos
         renderGraficoAnual(vTarifa, vInfa, vSalario);
-
     } catch (error) {
-        console.error("Error en análisis anual:", error);
+        console.error("Error anual:", error);
     }
 }
-function actualizarDashboard(d) {
-    const contenedor = document.getElementById("kpis");
-    
-    // Calculamos brechas
-    const brechaInf = d.brecha_anual;
-    const brechaSal = d.brecha_vs_salario;
-
-    contenedor.innerHTML = `
-        <div class="kpi ${brechaInf >= 0 ? 'verde' : 'rojo'}">
-            <small>Brecha vs Inflación</small>
-            <h2>${brechaInf > 0 ? '+' : ''}${brechaInf}%</h2>
-        </div>
-        <div class="kpi ${brechaSal >= 0 ? 'verde' : 'rojo'}">
-            <small>Brecha vs Salarios</small>
-            <h2>${brechaSal > 0 ? '+' : ''}${brechaSal}%</h2>
-        </div>
-        <div class="kpi amarillo">
-            <small>Tarifa Final</small>
-            <h2>$${d.tarifa_diciembre.toLocaleString("es-AR")}</h2>
-        </div>
-    `;
-
-    renderGraficoAnual(d);
-}
 
 // =====================
-// RENDERIZADO
+// GRÁFICOS
 // =====================
-function renderKPIs(kpis) {
-    const c = document.getElementById("kpis");
-    c.innerHTML = "";
-    kpis.forEach(k => {
-        c.innerHTML += `
-            <div class="kpi ${k.color}">
-                <small>${k.titulo}</small>
-                <h2>${k.valor}</h2>
-            </div>`;
-    });
-}
-
 function renderGrafico(hist) {
     if (chart) chart.destroy();
     chart = new Chart(document.getElementById("grafico"), {
@@ -254,166 +137,70 @@ function renderGrafico(hist) {
         data: {
             labels: hist.map(h => h.periodo),
             datasets: [
-                {
-                    label: "Variación Tarifa %",
-                    data: hist.map(h => h.variacion),
-                    borderColor: "#ff7a18",
-                    backgroundColor: "#ff7a18",
-                    tension: .3
-                },
-                {
-                    label: "Inflación %",
-                    data: hist.map(h => h.inflacion),
-                    borderColor: "#4dd0e1",
-                    borderDash: [6, 6],
-                    tension: .3
-                },
-                {
-                    label: "Salarios %",
-                    data: hist.map(h => h.salario), // <--- Línea de salarios
-                    borderColor: "#2196f3",
-                    tension: .3
-                }
+                { label: "Tarifa %", data: hist.map(h => h.variacion), borderColor: "#ff7a18", tension: .3 },
+                { label: "Inflación %", data: hist.map(h => h.inflacion), borderColor: "#4dd0e1", borderDash: [5,5], tension: .3 },
+                { label: "Salarios %", data: hist.map(h => h.salario), borderColor: "#2196f3", tension: .3 }
             ]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: "#aaa" } } },
-            scales: {
-                y: { ticks: { color: "#aaa" }, grid: { color: "#333" } },
-                x: { ticks: { color: "#aaa" } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#aaa" } } } }
     });
 }
 
 function renderGraficoAnual(tarifa, inflacion, salario) {
     if (chart) chart.destroy();
-    const ctx = document.getElementById("grafico").getContext("2d");
-
-    chart = new Chart(ctx, {
+    chart = new Chart(document.getElementById("grafico"), {
         type: 'bar',
         data: {
             labels: ['Comparativa Anual %'],
             datasets: [
-                {
-                    label: 'Aumento Tarifa',
-                    data: [tarifa],
-                    backgroundColor: '#ff7a18', // Naranja
-                    borderWidth: 1
-                },
-                {
-                    label: 'Inflación Anual',
-                    data: [inflacion],
-                    backgroundColor: '#4dd0e1', // Celeste
-                    borderWidth: 1
-                },
-                {
-                    label: 'Aumento Salarial',
-                    data: [salario],
-                    backgroundColor: '#2196f3', // Azul
-                    borderWidth: 1
-                }
+                { label: 'Tarifa', data: [tarifa], backgroundColor: '#ff7a18' },
+                { label: 'Inflación', data: [inflacion], backgroundColor: '#4dd0e1' },
+                { label: 'Sueldos', data: [salario], backgroundColor: '#2196f3' }
             ]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { color: '#aaa', callback: (v) => v + '%' }
-                },
-                x: {
-                    ticks: { color: '#fff' }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    labels: { color: '#fff' }
-                }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false }
     });
 }
-// Escuchador global para el botón
-document.addEventListener('click', function (e) {
-    if (e.target && e.target.id === 'btnPDF') {
-        exportarReporteCompleto();
-    }
-});
 
+// =====================
+// EXPORTACIÓN PDF
+// =====================
 function exportarReporteCompleto() {
-    // 1. Inicializar PDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    // 2. Capturar info de la pantalla
-    const tituloPrincipal = document.querySelector("h1") ? document.querySelector("h1").innerText : "Dashboard";
-    const subDetalle = document.getElementById("detalle") ? document.getElementById("detalle").innerText : "";
-    const esAnual = document.getElementById("btnAnual") && document.getElementById("btnAnual").classList.contains("activo");
+    const esAnual = document.getElementById("btnAnual").classList.contains("activo");
     const tipoAnalisis = esAnual ? "ANÁLISIS ANUAL" : "ANÁLISIS TRIMESTRAL";
 
-    // 3. Estilo del Encabezado
-    doc.setFontSize(20);
-    doc.setTextColor(255, 122, 18); // Naranja
+    doc.setFontSize(18);
+    doc.setTextColor(255, 122, 18);
     doc.text(tipoAnalisis, 14, 20);
     
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(subDetalle, 14, 28);
-    doc.line(14, 32, 196, 32); // Línea divisoria
+    doc.text(`Cliente: ${cliente} | Servicio: ${servicio} | Año: ${anio}`, 14, 28);
+    doc.line(14, 32, 196, 32);
 
-    // 4. Capturar KPIs (Los cuadros de arriba)
     const kpis = document.querySelectorAll("#kpis .kpi");
     const datosTabla = [];
     kpis.forEach(kpi => {
-        const nombre = kpi.querySelector("small") ? kpi.querySelector("small").innerText : "Dato";
-        const valor = kpi.querySelector("h2") ? kpi.querySelector("h2").innerText : "-";
-        datosTabla.push([nombre, valor]);
+        datosTabla.push([kpi.querySelector("small").innerText, kpi.querySelector("h2").innerText]);
     });
 
-    if (datosTabla.length > 0) {
-        doc.autoTable({
-            startY: 40,
-            head: [['Indicador', 'Valor']],
-            body: datosTabla,
-            theme: 'grid',
-            headStyles: { fillColor: [255, 122, 18], halign: 'center' },
-            styles: { fontSize: 10, cellPadding: 3 }
-        });
-    }
+    doc.autoTable({
+        startY: 38,
+        head: [['Indicador', 'Valor']],
+        body: datosTabla,
+        theme: 'grid',
+        headStyles: { fillColor: [255, 122, 18] }
+    });
 
-    // 5. Capturar el Gráfico
     const canvas = document.getElementById("grafico");
     if (canvas) {
-        try {
-            // El gráfico se añade después de la tabla
-            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 80;
-            
-            // Convertir canvas a imagen
-            const imgData = canvas.toDataURL("image/png", 1.0);
-            
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.text("Visualización de Datos:", 14, finalY);
-            
-            // Dibujar la imagen del gráfico
-            doc.addImage(imgData, 'PNG', 14, finalY + 5, 182, 90);
-        } catch (error) {
-            console.error("No se pudo incluir el gráfico:", error);
-        }
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.addImage(imgData, 'PNG', 14, finalY, 182, 90);
     }
 
-    // 6. Pie de página
-    const hoy = new Date().toLocaleString();
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text(`Generado por Sistema de Gestión - ${hoy}`, 14, 285);
-
-    // 7. Descargar
-    doc.save(`Reporte_Chapelco_${esAnual ? 'Anual' : 'Trimestral'}.pdf`);
+    doc.save(`Reporte_${cliente}_${anio}.pdf`);
 }
-
