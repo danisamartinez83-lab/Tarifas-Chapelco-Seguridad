@@ -160,42 +160,54 @@ async function cargarAnalisisAnual() {
         const res = await fetch(`${API}?action=analisis_anual&cliente=${cliente}&año=${anio}&servicio=${servicio}`);
         const d = await res.json();
 
-        // Limpiamos valores para el cálculo
-        const vTarifa = normalizarPorcentaje(d.variacion_anual);
-        const vInfa = normalizarPorcentaje(d.inflacion_anual);
-        const vSalario = normalizarPorcentaje(d.variacion_salario_anual);
+        // 1. Normalizamos los valores (aseguramos que sean números)
+        const vTarifa = parseFloat(normalizarPorcentaje(d.variacion_anual));
+        const vInfa = parseFloat(normalizarPorcentaje(d.inflacion_anual));
+        const vSalario = parseFloat(normalizarPorcentaje(d.variacion_salario_anual));
 
-        // Corregimos cálculos de brecha (Diferencia real)
+        // 2. Cálculo de Brechas (Diferencia porcentual)
         const bInf = parseFloat((vTarifa - vInfa).toFixed(1));
         const bSal = parseFloat((vTarifa - vSalario).toFixed(1));
 
-        // 1. KPIs Superiores (Orden solicitado)
-        renderKPIs([
-            { titulo: "Tarifa Enero", valor: `$ ${Number(d.tarifa_enero).toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Tarifa Diciembre", valor: `$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}`, color: "verde" },
-            { titulo: "Aumento Tarifario", valor: `${vTarifa}%`, color: "amarillo" },
-            { titulo: "Inflación Anual", valor: `${vInfa}%`, color: "amarillo" },
-            { titulo: "Aumento Salarial", valor: `${vSalario}%`, color: "amarillo" }
-        ]);
+        // 3. Renderizamos los 7 KPIs en el orden solicitado
+        const contenedor = document.getElementById("kpis");
+        contenedor.innerHTML = `
+            <div class="kpi verde">
+                <small>Tarifa Enero</small>
+                <h2>$ ${Number(d.tarifa_enero).toLocaleString("es-AR")}</h2>
+            </div>
+            <div class="kpi verde">
+                <small>Tarifa Dic.</small>
+                <h2>$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}</h2>
+            </div>
+            <div class="kpi amarillo">
+                <small>Aumento Tarifa</small>
+                <h2>${vTarifa}%</h2>
+            </div>
+            <div class="kpi amarillo">
+                <small>Inflación Anual</small>
+                <h2>${vInfa}%</h2>
+            </div>
+            <div class="kpi amarillo">
+                <small>Aumento Salarial</small>
+                <h2>${vSalario}%</h2>
+            </div>
+            <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}">
+                <small>Brecha vs Infl.</small>
+                <h2>${bInf > 0 ? '+' : ''}${bInf}%</h2>
+            </div>
+            <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}">
+                <small>Brecha vs Salarios</small>
+                <h2>${bSal > 0 ? '+' : ''}${bSal}%</h2>
+            </div>
+        `;
 
-        // 2. Cuadros de Brecha Inferiores (Estilo igual a los de arriba)
-        const contenedorBrechas = document.getElementById("brechas-detalle");
-        if (contenedorBrechas) {
-            contenedorBrechas.innerHTML = `
-                <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}">
-                    <small>Brecha vs Inflación</small>
-                    <h2>${bInf > 0 ? '+' : ''}${bInf}%</h2>
-                </div>
-                <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}">
-                    <small>Brecha vs Salarios</small>
-                    <h2>${bSal > 0 ? '+' : ''}${bSal}%</h2>
-                </div>
-            `;
-        }
+        // 4. Llamamos al gráfico pasando los datos corregidos
+        renderGraficoAnual(vTarifa, vInfa, vSalario);
 
-        renderGraficoAnual(d);
-    } catch (e) { console.error(e); }
-
+    } catch (error) {
+        console.error("Error en análisis anual:", error);
+    }
 }
 function actualizarDashboard(d) {
     const contenedor = document.getElementById("kpis");
@@ -278,62 +290,51 @@ function renderGrafico(hist) {
     });
 }
 
-function renderGraficoAnual(d) {
+function renderGraficoAnual(tarifa, inflacion, salario) {
     if (chart) chart.destroy();
-    
-    const varSalario = d.variacion_salario_anual || 0;
+    const ctx = document.getElementById("grafico").getContext("2d");
 
-    chart = new Chart(document.getElementById("grafico"), {
-        type: "bar",
+    chart = new Chart(ctx, {
+        type: 'bar',
         data: {
-            labels: ["Comparativa Anual"], // Etiqueta base
+            labels: ['Comparativa Anual %'],
             datasets: [
                 {
-                    label: "Variación Tarifa",
-                    data: [d.variacion_anual],
-                    backgroundColor: "#ff7a18",
-                    borderRadius: 5
+                    label: 'Aumento Tarifa',
+                    data: [tarifa],
+                    backgroundColor: '#ff7a18', // Naranja
+                    borderWidth: 1
                 },
                 {
-                    label: "Inflación",
-                    data: [d.inflacion_anual],
-                    backgroundColor: "#4dd0e1",
-                    borderRadius: 5
+                    label: 'Inflación Anual',
+                    data: [inflacion],
+                    backgroundColor: '#4dd0e1', // Celeste
+                    borderWidth: 1
                 },
                 {
-                    label: "Salarios",
-                    data: [varSalario],
-                    backgroundColor: "#2196f3",
-                    borderRadius: 5
+                    label: 'Aumento Salarial',
+                    data: [salario],
+                    backgroundColor: '#2196f3', // Azul
+                    borderWidth: 1
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: { boxWidth: 12, font: { size: 12 }, color: '#aaa', padding: 20 }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => ` ${context.dataset.label}: ${context.raw}%`
-                    }
-                }
-            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { 
-                        color: '#aaa',
-                        callback: (value) => value + '%' // Añade símbolo % al eje Y
-                    },
-                    grid: { color: '#333' }
+                    ticks: { color: '#aaa', callback: (v) => v + '%' }
                 },
                 x: {
-                    ticks: { color: '#aaa', display: false } // Ocultamos el label repetitivo
+                    ticks: { color: '#fff' }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { color: '#fff' }
                 }
             }
         }
