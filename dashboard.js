@@ -340,74 +340,51 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
         }
     });
 }
-document.getElementById("btnPDF").onclick = async () => {
-    // 1. Verificamos que la librería exista
-    if (!window.jspdf) {
-        alert("La librería PDF no cargó. Revisa tu conexión a internet.");
-        return;
-    }
-
+document.getElementById("btnPDF").onclick = () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    try {
-        // 2. Detectar si es Anual o Trimestral por el botón naranja
-        const esAnual = document.getElementById("btnAnual").classList.contains("activo");
-        const titulo = esAnual ? "REPORTE ANUAL DE TARIFAS" : "REPORTE TRIMESTRAL DE TARIFAS";
-        
-        // Obtenemos los datos de la URL para el encabezado
-        const params = new URLSearchParams(window.location.search);
-        const clienteNom = params.get("cliente") || "Cliente";
-        const servicioNom = params.get("servicio") || "Servicio";
+    // 1. Datos del encabezado (leídos de la pantalla)
+    const tituloPagina = document.querySelector("h1").innerText;
+    const detalleInfo = document.getElementById("detalle").innerText;
+    const esAnual = document.getElementById("btnAnual").classList.contains("activo");
+    const tipoAnalisis = esAnual ? "ANÁLISIS ANUAL" : "ANÁLISIS TRIMESTRAL";
 
-        // 3. Diseño del Encabezado
-        doc.setFontSize(18);
-        doc.setTextColor(255, 122, 24); 
-        doc.text(titulo, 14, 20);
-        
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Empresa: ${clienteNom} | Servicio: ${servicioNom}`, 14, 28);
-        doc.line(14, 32, 196, 32);
+    doc.setFontSize(18);
+    doc.setTextColor(255, 122, 24); // Naranja
+    doc.text(tipoAnalisis, 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(detalleInfo, 14, 28);
+    doc.line(14, 32, 196, 32);
 
-        // 4. Capturar los KPIs de la pantalla (Evitamos el error de 'historial is not defined')
-        const kpis = document.querySelectorAll("#kpis .kpi");
-        const filasTabla = [];
-        
-        kpis.forEach(kpi => {
-            const nombre = kpi.querySelector("small").innerText;
-            const valor = kpi.querySelector("h2").innerText;
-            filasTabla.push([nombre, valor]);
-        });
+    // 2. Tabla de Datos (Lee los cuadritos KPI)
+    const kpiElements = document.querySelectorAll("#kpis .kpi");
+    const filas = [];
+    kpiElements.forEach(el => {
+        const titulo = el.querySelector("small").innerText;
+        const valor = el.querySelector("h2").innerText;
+        filas.push([titulo, valor]);
+    });
 
-        // Dibujar tabla de indicadores
-        doc.autoTable({
-            startY: 40,
-            head: [['Indicador', 'Valor']],
-            body: filasTabla,
-            theme: 'grid',
-            headStyles: { fillColor: [255, 122, 24] },
-            styles: { fontSize: 10 }
-        });
+    doc.autoTable({
+        startY: 40,
+        head: [['Concepto', 'Valor']],
+        body: filas,
+        theme: 'grid',
+        headStyles: { fillColor: [255, 122, 24] }
+    });
 
-        // 5. Capturar el Gráfico como imagen
-        const canvas = document.getElementById("grafico");
-        if (canvas) {
-            const finalY = doc.lastAutoTable.finalY + 15;
-            doc.setFontSize(12);
-            doc.setTextColor(255, 122, 24);
-            doc.text("Análisis Gráfico:", 14, finalY);
-
-            // Convertir gráfico a imagen con fondo oscuro para que combine
-            const imgData = canvas.toDataURL("image/png");
-            doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 90);
-        }
-
-        // 6. Descarga automática
-        doc.save(`Reporte_${clienteNom}.pdf`);
-
-    } catch (e) {
-        console.error("Error al generar PDF:", e);
-        alert("Error al generar el archivo. Revisa la consola.");
+    // 3. Imagen del Gráfico
+    const canvas = document.getElementById("grafico");
+    if (canvas) {
+        const imgData = canvas.toDataURL("image/png");
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.text("Gráfico Comparativo:", 14, finalY);
+        doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 90);
     }
+
+    // 4. Descarga Directa
+    doc.save("Reporte_Chapelco.pdf");
 };
