@@ -339,10 +339,82 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
         }
     });
 }
-// Usamos este método para asegurar que el botón responda sí o sí
+// Escuchador global para el botón
 document.addEventListener('click', function (e) {
     if (e.target && e.target.id === 'btnPDF') {
-        exportarDashAPDF();
+        exportarReporteCompleto();
     }
 });
+
+function exportarReporteCompleto() {
+    // 1. Inicializar PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // 2. Capturar info de la pantalla
+    const tituloPrincipal = document.querySelector("h1") ? document.querySelector("h1").innerText : "Dashboard";
+    const subDetalle = document.getElementById("detalle") ? document.getElementById("detalle").innerText : "";
+    const esAnual = document.getElementById("btnAnual") && document.getElementById("btnAnual").classList.contains("activo");
+    const tipoAnalisis = esAnual ? "ANÁLISIS ANUAL" : "ANÁLISIS TRIMESTRAL";
+
+    // 3. Estilo del Encabezado
+    doc.setFontSize(20);
+    doc.setTextColor(255, 122, 18); // Naranja
+    doc.text(tipoAnalisis, 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(subDetalle, 14, 28);
+    doc.line(14, 32, 196, 32); // Línea divisoria
+
+    // 4. Capturar KPIs (Los cuadros de arriba)
+    const kpis = document.querySelectorAll("#kpis .kpi");
+    const datosTabla = [];
+    kpis.forEach(kpi => {
+        const nombre = kpi.querySelector("small") ? kpi.querySelector("small").innerText : "Dato";
+        const valor = kpi.querySelector("h2") ? kpi.querySelector("h2").innerText : "-";
+        datosTabla.push([nombre, valor]);
+    });
+
+    if (datosTabla.length > 0) {
+        doc.autoTable({
+            startY: 40,
+            head: [['Indicador', 'Valor']],
+            body: datosTabla,
+            theme: 'grid',
+            headStyles: { fillColor: [255, 122, 18], halign: 'center' },
+            styles: { fontSize: 10, cellPadding: 3 }
+        });
+    }
+
+    // 5. Capturar el Gráfico
+    const canvas = document.getElementById("grafico");
+    if (canvas) {
+        try {
+            // El gráfico se añade después de la tabla
+            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 80;
+            
+            // Convertir canvas a imagen
+            const imgData = canvas.toDataURL("image/png", 1.0);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text("Visualización de Datos:", 14, finalY);
+            
+            // Dibujar la imagen del gráfico
+            doc.addImage(imgData, 'PNG', 14, finalY + 5, 182, 90);
+        } catch (error) {
+            console.error("No se pudo incluir el gráfico:", error);
+        }
+    }
+
+    // 6. Pie de página
+    const hoy = new Date().toLocaleString();
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(`Generado por Sistema de Gestión - ${hoy}`, 14, 285);
+
+    // 7. Descargar
+    doc.save(`Reporte_Chapelco_${esAnual ? 'Anual' : 'Trimestral'}.pdf`);
+}
 
