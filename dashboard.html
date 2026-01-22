@@ -13,62 +13,78 @@ body {
   background: #0f1115;
   color: #fff;
   margin: 0;
-  padding: 20px; /* Reducido de 30px para ganar espacio en móvil */
+  padding: 15px; /* Optimizado para ganar espacio */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-h1 { color: #ff7a18; margin-top: 10px; }
+h1 { color: #ff7a18; margin: 10px 0 5px 0; font-size: 1.8rem; }
 
-.subtitulo { color: #aaa; margin-bottom: 25px; font-size: 14px; }
+.subtitulo { color: #aaa; margin-bottom: 15px; font-size: 14px; }
 
+/* Contenedor unificado para todos los KPIs (incluyendo brechas) */
 .kpis {
   display: grid;
-  /* El minmax asegura que en PC se vean varios y en móvil se ajusten solos */
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
+  /* En PC permite hasta 5 o 6 columnas, en móvil se ajusta solo */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .kpi {
   background: #1a1d24;
-  padding: 18px;
+  padding: 15px;
   border-radius: 12px;
   border-left: 6px solid #444;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .kpi.verde { border-left-color: #4caf50; }
 .kpi.amarillo { border-left-color: #ff9800; }
 .kpi.rojo { border-left-color: #f44336; }
 
-.kpi small { color: #aaa; font-size: 12px; }
-.kpi h2 { color: #ff7a18; margin: 8px 0 0 0; font-size: 1.5rem; }
+.kpi small { color: #aaa; font-size: 11px; text-transform: uppercase; }
+.kpi h2 { color: #ff7a18; margin: 5px 0 0 0; font-size: 1.4rem; font-weight: bold; }
 
-.grafico {
+/* Contenedor del gráfico expandido */
+.card-grafico {
   background: #1a1d24;
   padding: 15px;
   border-radius: 14px;
+  flex-grow: 1; /* Hace que el gráfico ocupe el espacio restante */
+  display: flex;
+  flex-direction: column;
+  min-height: 450px; /* Altura mínima para que no se achique */
+}
+
+.chart-container {
   position: relative;
-  /* Importante para que el gráfico sea responsivo */
-  height: 250vh; 
-  min-height: 250px;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
 }
 
 .acciones-dashboard {
   display: flex;
-  flex-wrap: wrap; /* Permite que los botones bajen si no hay espacio */
+  flex-wrap: wrap;
   gap: 10px;
-  margin: 20px 0;
+  margin-bottom: 20px;
 }
 
 .acciones-dashboard button {
   background: #1a1d24;
   color: #fff;
   border: 1px solid #333;
-  padding: 12px 15px; /* Más cómodo para el dedo en móvil */
+  padding: 12px;
   border-radius: 10px;
   cursor: pointer;
-  flex: 1; /* Los botones crecen para ocupar el ancho en móvil */
-  min-width: 140px;
-  font-size: 14px;
+  flex: 1;
+  min-width: 120px;
+  font-size: 13px;
+  transition: 0.3s;
 }
 
 .acciones-dashboard button.activo {
@@ -77,30 +93,15 @@ h1 { color: #ff7a18; margin-top: 10px; }
   font-weight: bold;
 }
 
-/* --- AJUSTES ESPECÍFICOS PARA CELULAR --- */
+/* --- AJUSTES PARA CELULAR --- */
 @media (max-width: 600px) {
-  body { padding: 15px; }
-  
-  h1 { font-size: 1.4rem; }
-  
-  .acciones-dashboard {
-    display: grid;
-    grid-template-columns: 1fr; /* Botones uno debajo de otro */
-  }
-
   .kpis {
-    grid-template-columns: 1fr; /* Una sola columna de KPIs */
+    grid-template-columns: 1fr 1fr; /* Dos columnas en móvil para que no sea tan largo */
   }
-
-  .grafico {
-    height: 500px;
-    padding: 10px;
+  
+  .card-grafico {
+    height: 400px;
   }
-}
-
-/* Ocultar botones en la impresión */
-@media print {
-  .acciones-dashboard { display: none; }
 }
 </style>
 </head>
@@ -116,17 +117,13 @@ h1 { color: #ff7a18; margin-top: 10px; }
   <button id="btnPDF" style="border-color: #ff7a18; color: #ff7a18;">📄 Exportar PDF / Imprimir</button>
 </div>
 
-<div class="kpis" id="kpis">
-  </div>
-  
-<div id="brechas-detalle" class="brechas-grid"></div>
+<div class="kpis" id="kpis"></div>
 
-<div class="card">
+<div class="card-grafico">
     <div class="chart-container">
-        <canvas id="grafico"></canvas> </div>
+        <canvas id="grafico"></canvas>
+    </div>
 </div>
-
-
 
 <script src="dashboard.js"></script>
 </body>
