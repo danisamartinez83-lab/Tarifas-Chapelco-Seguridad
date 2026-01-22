@@ -165,22 +165,33 @@ async function cargarAnalisisAnual() {
             return;
         }
 
-        // Normalizamos datos del servidor
-        d.variacion_anual = normalizarPorcentaje(d.variacion_anual);
-        d.inflacion_anual = normalizarPorcentaje(d.inflacion_anual);
-        d.variacion_salario_anual = normalizarPorcentaje(d.variacion_salario_anual);
-        
-        // Calculamos brechas anuales
-        const bAnualInf = parseFloat((d.variacion_anual - d.inflacion_anual).toFixed(2));
-        const bAnualSal = parseFloat((d.variacion_anual - d.variacion_salario_anual).toFixed(2));
-
+        // 1. KPIs SUPERIORES (Valores nominales y totales)
         renderKPIs([
-            { titulo: "Brecha vs Inflación", valor: `${bAnualInf >= 0 ? "+" : ""}${bAnualInf}%`, color: bAnualInf >= 0 ? "verde" : "rojo" },
-            { titulo: "Brecha vs Salarios", valor: `${bAnualSal >= 0 ? "+" : ""}${bAnualSal}%`, color: bAnualSal >= 0 ? "verde" : "rojo" },
-            { titulo: "Aumento Salarial", valor: `${d.variacion_salario_anual}%`, color: "amarillo" },
-            { titulo: "Aumento Tarifario", valor: `${d.variacion_anual}%`, color: "amarillo" },
-            { titulo: "Tarifa Diciembre", valor: `$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}`, color: "verde" }
+            { titulo: "Tarifa Enero", valor: `$ ${Number(d.tarifa_enero).toLocaleString("es-AR")}`, color: "verde" },
+            { titulo: "Tarifa Diciembre", valor: `$ ${Number(d.tarifa_diciembre).toLocaleString("es-AR")}`, color: "verde" },
+            { titulo: "Aumento Tarifario", valor: `${normalizarPorcentaje(d.variacion_anual)}%`, color: "amarillo" },
+            { titulo: "Inflación Anual", valor: `${normalizarPorcentaje(d.inflacion_anual)}%`, color: "amarillo" },
+            { titulo: "Aumento Salarial", valor: `${normalizarPorcentaje(d.variacion_salario_anual)}%`, color: "amarillo" }
         ]);
+
+        // 2. CÁLCULO DE BRECHAS PARA EL DETALLE INFERIOR
+        const bInf = parseFloat((d.variacion_anual - d.inflacion_anual).toFixed(1));
+        const bSal = parseFloat((d.variacion_anual - d.variacion_salario_anual).toFixed(1));
+
+        // Inyectamos las brechas en el contenedor de abajo (el mismo que usamos en el trimestral)
+        const contenedorBrechas = document.getElementById("brechas-detalle");
+        if (contenedorBrechas) {
+            contenedorBrechas.innerHTML = `
+                <div class="kpi-mini ${bInf >= 0 ? 'verde' : 'rojo'}">
+                    <small>Brecha vs Inflación Anual</small>
+                    <h3>${bInf > 0 ? '+' : ''}${bInf}%</h3>
+                </div>
+                <div class="kpi-mini ${bSal >= 0 ? 'verde' : 'rojo'}">
+                    <small>Brecha vs Salarios Anual</small>
+                    <h3>${bSal > 0 ? '+' : ''}${bSal}%</h3>
+                </div>
+            `;
+        }
 
         renderGraficoAnual(d);
     } catch (error) {
