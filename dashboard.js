@@ -340,12 +340,10 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
         }
     });
 }
-document.getElementById("btnPDF").onclick = async function() {
-    console.log("Iniciando exportación PDF...");
-
-    // 1. Validar que la librería existe
+document.getElementById("btnPDF").onclick = async () => {
+    // 1. Verificamos que la librería exista
     if (!window.jspdf) {
-        alert("Error: La librería de PDF no ha cargado. Revisa la conexión.");
+        alert("La librería PDF no cargó. Revisa tu conexión a internet.");
         return;
     }
 
@@ -353,66 +351,63 @@ document.getElementById("btnPDF").onclick = async function() {
     const doc = new jsPDF('p', 'mm', 'a4');
 
     try {
-        // 2. Detectar Modo
-        const btnAnual = document.getElementById("btnAnual");
-        const esAnual = btnAnual && btnAnual.classList.contains("activo");
-        const tituloDoc = esAnual ? "REPORTE ANUAL" : "REPORTE TRIMESTRAL";
+        // 2. Detectar si es Anual o Trimestral por el botón naranja
+        const esAnual = document.getElementById("btnAnual").classList.contains("activo");
+        const titulo = esAnual ? "REPORTE ANUAL DE TARIFAS" : "REPORTE TRIMESTRAL DE TARIFAS";
+        
+        // Obtenemos los datos de la URL para el encabezado
+        const params = new URLSearchParams(window.location.search);
+        const clienteNom = params.get("cliente") || "Cliente";
+        const servicioNom = params.get("servicio") || "Servicio";
 
-        // 3. Encabezado
+        // 3. Diseño del Encabezado
         doc.setFontSize(18);
         doc.setTextColor(255, 122, 24); 
-        doc.text(tituloDoc, 14, 20);
+        doc.text(titulo, 14, 20);
         
         doc.setFontSize(10);
         doc.setTextColor(100);
-        // Usamos las variables globales que ya tienes en el dashboard
-        doc.text(`Cliente: ${cliente || 'N/A'} | Servicio: ${servicio || 'N/A'}`, 14, 28);
+        doc.text(`Empresa: ${clienteNom} | Servicio: ${servicioNom}`, 14, 28);
         doc.line(14, 32, 196, 32);
 
-        // 4. Captura de KPIs
-        const kpiCards = document.querySelectorAll("#kpis .kpi");
-        const kpiData = [];
-        kpiCards.forEach(card => {
-            const t = card.querySelector("small") ? card.querySelector("small").innerText : "Dato";
-            const v = card.querySelector("h2") ? card.querySelector("h2").innerText : "-";
-            kpiData.push([t, v]);
+        // 4. Capturar los KPIs de la pantalla (Evitamos el error de 'historial is not defined')
+        const kpis = document.querySelectorAll("#kpis .kpi");
+        const filasTabla = [];
+        
+        kpis.forEach(kpi => {
+            const nombre = kpi.querySelector("small").innerText;
+            const valor = kpi.querySelector("h2").innerText;
+            filasTabla.push([nombre, valor]);
         });
 
-        if (kpiData.length > 0) {
-            doc.autoTable({
-                body: kpiData,
-                startY: 40,
-                theme: 'grid',
-                headStyles: { fillColor: [255, 122, 24] },
-                styles: { fontSize: 9 },
-                columnStyles: { 0: { fontStyle: 'bold' } }
-            });
-        }
+        // Dibujar tabla de indicadores
+        doc.autoTable({
+            startY: 40,
+            head: [['Indicador', 'Valor']],
+            body: filasTabla,
+            theme: 'grid',
+            headStyles: { fillColor: [255, 122, 24] },
+            styles: { fontSize: 10 }
+        });
 
-        // 5. Captura del Gráfico (Paso crítico)
+        // 5. Capturar el Gráfico como imagen
         const canvas = document.getElementById("grafico");
         if (canvas) {
-            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 60;
-            
-            // Forzamos un fondo blanco si el gráfico es transparente
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.fillStyle = "#1a1d24"; // Fondo oscuro igual al dashboard
-            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            tempCtx.drawImage(canvas, 0, 0);
+            const finalY = doc.lastAutoTable.finalY + 15;
+            doc.setFontSize(12);
+            doc.setTextColor(255, 122, 24);
+            doc.text("Análisis Gráfico:", 14, finalY);
 
-            const imgData = tempCanvas.toDataURL("image/png");
-            doc.addImage(imgData, 'PNG', 14, finalY, 180, 90);
+            // Convertir gráfico a imagen con fondo oscuro para que combine
+            const imgData = canvas.toDataURL("image/png");
+            doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 90);
         }
 
-        // 6. Descarga
-        console.log("Descargando PDF...");
-        doc.save(`Reporte_${cliente}.pdf`);
+        // 6. Descarga automática
+        doc.save(`Reporte_${clienteNom}.pdf`);
 
-    } catch (error) {
-        console.error("Error fatal en PDF:", error);
-        alert("Hubo un error al generar el PDF. Revisa la consola (F12).");
+    } catch (e) {
+        console.error("Error al generar PDF:", e);
+        alert("Error al generar el archivo. Revisa la consola.");
     }
 };
