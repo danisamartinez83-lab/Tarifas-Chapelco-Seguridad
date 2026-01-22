@@ -340,66 +340,79 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
         }
     });
 }
-document.getElementById("btnPDF").onclick = async () => {
+document.getElementById("btnPDF").onclick = async function() {
+    console.log("Iniciando exportación PDF...");
+
+    // 1. Validar que la librería existe
+    if (!window.jspdf) {
+        alert("Error: La librería de PDF no ha cargado. Revisa la conexión.");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    // 1. Detectar qué análisis estamos viendo (Anual o Trimestral)
-    const esAnual = document.getElementById("btnAnual").classList.contains("activo");
-    const titulo = esAnual ? "REPORTE ANUAL DE TARIFAS" : "REPORTE TRIMESTRAL DE TARIFAS";
-    
-    // 2. Encabezado
-    doc.setFontSize(18);
-    doc.setTextColor(255, 122, 24); // Naranja
-    doc.text(titulo, 14, 20);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Cliente: ${cliente} | Servicio: ${servicio} | Año: ${anio}`, 14, 28);
-    doc.line(14, 32, 196, 32);
+    try {
+        // 2. Detectar Modo
+        const btnAnual = document.getElementById("btnAnual");
+        const esAnual = btnAnual && btnAnual.classList.contains("activo");
+        const tituloDoc = esAnual ? "REPORTE ANUAL" : "REPORTE TRIMESTRAL";
 
-    // 3. Capturar KPIs (Extraemos los datos de los cuadros de la pantalla)
-    const kpiCards = document.querySelectorAll("#kpis .kpi");
-    const kpiData = [];
-    
-    kpiCards.forEach(card => {
-        const t = card.querySelector("small").innerText;
-        const v = card.querySelector("h2").innerText;
-        kpiData.push([t, v]);
-    });
-
-    // Dibujamos los KPIs en una tabla limpia
-    doc.autoTable({
-        body: kpiData,
-        startY: 40,
-        theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
-        margin: { left: 14, right: 14 }
-    });
-
-    // 4. Capturar el Gráfico
-    // El "finalY" nos dice dónde terminó la tabla para no encimar el gráfico
-    const finalY = doc.lastAutoTable.finalY + 10;
-    const canvas = document.getElementById("grafico");
-    
-    if (canvas) {
-        doc.setFontSize(12);
-        doc.setTextColor(255, 122, 24);
-        doc.text("Análisis Gráfico:", 14, finalY);
+        // 3. Encabezado
+        doc.setFontSize(18);
+        doc.setTextColor(255, 122, 24); 
+        doc.text(tituloDoc, 14, 20);
         
-        // Convertimos el gráfico en imagen (PNG)
-        const imgData = canvas.toDataURL("image/png", 1.0);
-        
-        // Lo pegamos en el PDF (Ancho 180mm, Alto 100mm)
-        doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 100);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        // Usamos las variables globales que ya tienes en el dashboard
+        doc.text(`Cliente: ${cliente || 'N/A'} | Servicio: ${servicio || 'N/A'}`, 14, 28);
+        doc.line(14, 32, 196, 32);
+
+        // 4. Captura de KPIs
+        const kpiCards = document.querySelectorAll("#kpis .kpi");
+        const kpiData = [];
+        kpiCards.forEach(card => {
+            const t = card.querySelector("small") ? card.querySelector("small").innerText : "Dato";
+            const v = card.querySelector("h2") ? card.querySelector("h2").innerText : "-";
+            kpiData.push([t, v]);
+        });
+
+        if (kpiData.length > 0) {
+            doc.autoTable({
+                body: kpiData,
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [255, 122, 24] },
+                styles: { fontSize: 9 },
+                columnStyles: { 0: { fontStyle: 'bold' } }
+            });
+        }
+
+        // 5. Captura del Gráfico (Paso crítico)
+        const canvas = document.getElementById("grafico");
+        if (canvas) {
+            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 60;
+            
+            // Forzamos un fondo blanco si el gráfico es transparente
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.fillStyle = "#1a1d24"; // Fondo oscuro igual al dashboard
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.drawImage(canvas, 0, 0);
+
+            const imgData = tempCanvas.toDataURL("image/png");
+            doc.addImage(imgData, 'PNG', 14, finalY, 180, 90);
+        }
+
+        // 6. Descarga
+        console.log("Descargando PDF...");
+        doc.save(`Reporte_${cliente}.pdf`);
+
+    } catch (error) {
+        console.error("Error fatal en PDF:", error);
+        alert("Hubo un error al generar el PDF. Revisa la consola (F12).");
     }
-
-    // 5. Pie de página
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 285);
-
-    // 6. Descargar
-    doc.save(`Reporte_${esAnual ? 'Anual' : 'Trimestral'}_${cliente}.pdf`);
 };
