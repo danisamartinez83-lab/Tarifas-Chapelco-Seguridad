@@ -340,14 +340,72 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
         }
     });
 }
-document.getElementById("btnPDF").onclick = () => {
-    // Ocultamos los botones para que no salgan en el PDF
-    const acciones = document.querySelector(".acciones-dashboard");
-    acciones.style.display = "none";
+document.getElementById("btnPDF").onclick = async () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // 1. Identificar qué análisis está activo
+    const esAnual = document.getElementById("btnAnual").classList.contains("activo");
+    const tituloReporte = esAnual ? "ANÁLISIS ANUAL DE TARIFAS" : "ANÁLISIS TRIMESTRAL DE TARIFAS";
     
-    // Disparamos la impresión
-    window.print();
+    // 2. Encabezado institucional
+    doc.setFontSize(20);
+    doc.setTextColor(255, 122, 24); // Naranja
+    doc.text(tituloReporte, 14, 20);
     
-    // Los volvemos a mostrar después
-    acciones.style.display = "flex";
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Cliente: ${cliente} | Servicio: ${servicio} | Año: ${anio}`, 14, 28);
+    doc.line(14, 32, 196, 32);
+
+    // 3. Capturar KPIs (Los 7 cuadros de arriba)
+    // Vamos a extraer el texto directamente del contenedor #kpis
+    const kpiCards = document.querySelectorAll("#kpis .kpi");
+    let yPos = 42;
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Resumen de Indicadores:", 14, yPos);
+    yPos += 10;
+
+    // Crear una tabla pequeña para los KPIs para que se vean ordenados
+    const kpiData = [];
+    kpiCards.forEach(card => {
+        const titulo = card.querySelector("small").innerText;
+        const valor = card.querySelector("h2").innerText;
+        kpiData.push([titulo, valor]);
+    });
+
+    doc.autoTable({
+        body: kpiData,
+        startY: yPos,
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 2 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
+
+    // 4. Capturar el Gráfico Principal
+    const finalY = doc.lastAutoTable.finalY + 15;
+    const canvas = document.getElementById("grafico");
+    
+    if (canvas) {
+        doc.setFontSize(12);
+        doc.text("Evolución Gráfica:", 14, finalY);
+        
+        // Convertimos el canvas a imagen
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        // Ajustamos la imagen al ancho del PDF
+        doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 100);
+    }
+
+    // 5. Pie de página
+    const fecha = new Date().toLocaleString();
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(`Generado por Sistema Tarifario Chapelco - ${fecha}`, 14, 285);
+
+    // 6. Descargar el archivo
+    const nombreArchivo = esAnual ? `Anual_${cliente}.pdf` : `Trimestral_${cliente}.pdf`;
+    doc.save(nombreArchivo);
+
 };
