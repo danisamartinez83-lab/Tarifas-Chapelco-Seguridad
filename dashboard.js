@@ -117,7 +117,6 @@ async function cargarDashboard() {
     }
 }
 
-        // Tomamos el último trimestre disponible (ej: T4)
    // Tomamos el último trimestre disponible (ej: T4)
         const u = historial[historial.length - 1];
 
@@ -347,67 +346,39 @@ document.addEventListener('click', function (e) {
     }
 });
 
-function exportarDashAPDF() {
-    console.log("Iniciando exportación...");
-    
-    // Verificación de librerías
-    if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Las librerías de PDF no están cargadas. Revisa tu conexión.");
-        return;
-    }
-
+async function exportarDashAPDF() { 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
+    const doc = new jsPDF('landscape');
+    doc.setFontSize(16);
 
-    // 1. Obtener datos básicos de la pantalla
-    const clienteTexto = document.getElementById("detalle") ? document.getElementById("detalle").innerText : "Reporte Chapelco";
-    const esAnual = document.getElementById("btnAnual") && document.getElementById("btnAnual").classList.contains("activo");
-    const tituloTipo = esAnual ? "ANÁLISIS ANUAL" : "ANÁLISIS TRIMESTRAL";
+    // Título
+    doc.text(`Dashboard Ejecutivo - ${cliente} - ${servicio} - ${anio}`, 14, 20);
 
-    // 2. Encabezado
-    doc.setFontSize(18);
-    doc.setTextColor(255, 122, 24); // Naranja
-    doc.text(tituloTipo, 14, 20);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(clienteTexto, 14, 28);
-    doc.line(14, 32, 196, 32);
+    // Agregar KPIs
+    const kpiElements = document.querySelectorAll('#kpis .kpi');
+    let yOffset = 30;   
+    kpiElements.forEach((kpi, index) => {
+        const titulo = kpi.querySelector('small').innerText;
+        const valor = kpi.querySelector('h2').innerText;
+        doc.setFillColor(kpi.classList.contains('verde') ? '#4CAF50' : kpi.classList.contains('rojo') ? '#F44336' : '#FFC107');
+        doc.rect(14 + (index % 5) * 60, yOffset, 55, 20, 'F');
+        doc.setTextColor('#FFFFFF');
+        doc.text(titulo, 16 + (index % 5) * 60, yOffset + 7);
 
-    // 3. Capturar KPIs (Cuadros de datos)
-    const kpiElements = document.querySelectorAll("#kpis .kpi");
-    const filas = [];
-    kpiElements.forEach(el => {
-        const titulo = el.querySelector("small") ? el.querySelector("small").innerText : "Dato";
-        const valor = el.querySelector("h2") ? el.querySelector("h2").innerText : "-";
-        filas.push([titulo, valor]);
+        doc.setFontSize(14);
+
+        doc.text(valor, 16 + (index % 5) * 60, yOffset + 15);
+        doc.setFontSize(16);
+        if ((index + 1) % 5 === 0) {
+            yOffset += 30;
+        }
     });
 
-    if (filas.length > 0) {
-        doc.autoTable({
-            startY: 40,
-            head: [['Concepto', 'Valor']],
-            body: filas,
-            theme: 'grid',
-            headStyles: { fillColor: [255, 122, 24] }
-        });
-    }
-
-    // 4. Capturar el Gráfico
-    const canvas = document.getElementById("grafico");
-    if (canvas) {
-        try {
-            const imgData = canvas.toDataURL("image/png");
-            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 70;
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.text("Gráfico de Referencia:", 14, finalY);
-            doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 90);
-        } catch (err) {
-            console.warn("No se pudo capturar el gráfico por seguridad del navegador.");
-        }
-    }
-
-    // 5. Descarga
-    doc.save("Reporte_Chapelco.pdf");
+    // Agregar Gráfico
+    const canvas = document.getElementById('grafico');
+    const imgData = canvas.toDataURL('image/png');
+    doc.addPage();
+    doc.text('Gráfico de Variaciones', 14, 20);
+    doc.addImage(imgData, 'PNG', 14, 30, 260, 120);
+    doc.save(`Dashboard_${cliente}_${servicio}_${anio}.pdf`);
 }
