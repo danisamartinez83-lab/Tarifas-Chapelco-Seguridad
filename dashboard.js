@@ -344,68 +344,62 @@ document.getElementById("btnPDF").onclick = async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    // 1. Identificar qué análisis está activo
+    // 1. Detectar qué análisis estamos viendo (Anual o Trimestral)
     const esAnual = document.getElementById("btnAnual").classList.contains("activo");
-    const tituloReporte = esAnual ? "ANÁLISIS ANUAL DE TARIFAS" : "ANÁLISIS TRIMESTRAL DE TARIFAS";
+    const titulo = esAnual ? "REPORTE ANUAL DE TARIFAS" : "REPORTE TRIMESTRAL DE TARIFAS";
     
-    // 2. Encabezado institucional
-    doc.setFontSize(20);
+    // 2. Encabezado
+    doc.setFontSize(18);
     doc.setTextColor(255, 122, 24); // Naranja
-    doc.text(tituloReporte, 14, 20);
+    doc.text(titulo, 14, 20);
     
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Cliente: ${cliente} | Servicio: ${servicio} | Año: ${anio}`, 14, 28);
     doc.line(14, 32, 196, 32);
 
-    // 3. Capturar KPIs (Los 7 cuadros de arriba)
-    // Vamos a extraer el texto directamente del contenedor #kpis
+    // 3. Capturar KPIs (Extraemos los datos de los cuadros de la pantalla)
     const kpiCards = document.querySelectorAll("#kpis .kpi");
-    let yPos = 42;
-    
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text("Resumen de Indicadores:", 14, yPos);
-    yPos += 10;
-
-    // Crear una tabla pequeña para los KPIs para que se vean ordenados
     const kpiData = [];
+    
     kpiCards.forEach(card => {
-        const titulo = card.querySelector("small").innerText;
-        const valor = card.querySelector("h2").innerText;
-        kpiData.push([titulo, valor]);
+        const t = card.querySelector("small").innerText;
+        const v = card.querySelector("h2").innerText;
+        kpiData.push([t, v]);
     });
 
+    // Dibujamos los KPIs en una tabla limpia
     doc.autoTable({
         body: kpiData,
-        startY: yPos,
-        theme: 'plain',
-        styles: { fontSize: 10, cellPadding: 2 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+        startY: 40,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+        margin: { left: 14, right: 14 }
     });
 
-    // 4. Capturar el Gráfico Principal
-    const finalY = doc.lastAutoTable.finalY + 15;
+    // 4. Capturar el Gráfico
+    // El "finalY" nos dice dónde terminó la tabla para no encimar el gráfico
+    const finalY = doc.lastAutoTable.finalY + 10;
     const canvas = document.getElementById("grafico");
     
     if (canvas) {
         doc.setFontSize(12);
-        doc.text("Evolución Gráfica:", 14, finalY);
+        doc.setTextColor(255, 122, 24);
+        doc.text("Análisis Gráfico:", 14, finalY);
         
-        // Convertimos el canvas a imagen
+        // Convertimos el gráfico en imagen (PNG)
         const imgData = canvas.toDataURL("image/png", 1.0);
-        // Ajustamos la imagen al ancho del PDF
+        
+        // Lo pegamos en el PDF (Ancho 180mm, Alto 100mm)
         doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 100);
     }
 
     // 5. Pie de página
-    const fecha = new Date().toLocaleString();
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(`Generado por Sistema Tarifario Chapelco - ${fecha}`, 14, 285);
+    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 285);
 
-    // 6. Descargar el archivo
-    const nombreArchivo = esAnual ? `Anual_${cliente}.pdf` : `Trimestral_${cliente}.pdf`;
-    doc.save(nombreArchivo);
-
+    // 6. Descargar
+    doc.save(`Reporte_${esAnual ? 'Anual' : 'Trimestral'}_${cliente}.pdf`);
 };
