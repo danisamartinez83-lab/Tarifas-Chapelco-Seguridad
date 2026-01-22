@@ -340,51 +340,74 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
         }
     });
 }
-document.getElementById("btnPDF").onclick = () => {
+// Usamos este método para asegurar que el botón responda sí o sí
+document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'btnPDF') {
+        exportarDashAPDF();
+    }
+});
+
+function exportarDashAPDF() {
+    console.log("Iniciando exportación...");
+    
+    // Verificación de librerías
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("Las librerías de PDF no están cargadas. Revisa tu conexión.");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    // 1. Datos del encabezado (leídos de la pantalla)
-    const tituloPagina = document.querySelector("h1").innerText;
-    const detalleInfo = document.getElementById("detalle").innerText;
-    const esAnual = document.getElementById("btnAnual").classList.contains("activo");
-    const tipoAnalisis = esAnual ? "ANÁLISIS ANUAL" : "ANÁLISIS TRIMESTRAL";
+    // 1. Obtener datos básicos de la pantalla
+    const clienteTexto = document.getElementById("detalle") ? document.getElementById("detalle").innerText : "Reporte Chapelco";
+    const esAnual = document.getElementById("btnAnual") && document.getElementById("btnAnual").classList.contains("activo");
+    const tituloTipo = esAnual ? "ANÁLISIS ANUAL" : "ANÁLISIS TRIMESTRAL";
 
+    // 2. Encabezado
     doc.setFontSize(18);
     doc.setTextColor(255, 122, 24); // Naranja
-    doc.text(tipoAnalisis, 14, 20);
+    doc.text(tituloTipo, 14, 20);
     
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(detalleInfo, 14, 28);
+    doc.text(clienteTexto, 14, 28);
     doc.line(14, 32, 196, 32);
 
-    // 2. Tabla de Datos (Lee los cuadritos KPI)
+    // 3. Capturar KPIs (Cuadros de datos)
     const kpiElements = document.querySelectorAll("#kpis .kpi");
     const filas = [];
     kpiElements.forEach(el => {
-        const titulo = el.querySelector("small").innerText;
-        const valor = el.querySelector("h2").innerText;
+        const titulo = el.querySelector("small") ? el.querySelector("small").innerText : "Dato";
+        const valor = el.querySelector("h2") ? el.querySelector("h2").innerText : "-";
         filas.push([titulo, valor]);
     });
 
-    doc.autoTable({
-        startY: 40,
-        head: [['Concepto', 'Valor']],
-        body: filas,
-        theme: 'grid',
-        headStyles: { fillColor: [255, 122, 24] }
-    });
-
-    // 3. Imagen del Gráfico
-    const canvas = document.getElementById("grafico");
-    if (canvas) {
-        const imgData = canvas.toDataURL("image/png");
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.text("Gráfico Comparativo:", 14, finalY);
-        doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 90);
+    if (filas.length > 0) {
+        doc.autoTable({
+            startY: 40,
+            head: [['Concepto', 'Valor']],
+            body: filas,
+            theme: 'grid',
+            headStyles: { fillColor: [255, 122, 24] }
+        });
     }
 
-    // 4. Descarga Directa
+    // 4. Capturar el Gráfico
+    const canvas = document.getElementById("grafico");
+    if (canvas) {
+        try {
+            const imgData = canvas.toDataURL("image/png");
+            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 70;
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text("Gráfico de Referencia:", 14, finalY);
+            doc.addImage(imgData, 'PNG', 14, finalY + 5, 180, 90);
+        } catch (err) {
+            console.warn("No se pudo capturar el gráfico por seguridad del navegador.");
+        }
+    }
+
+    // 5. Descarga
     doc.save("Reporte_Chapelco.pdf");
-};
+}
