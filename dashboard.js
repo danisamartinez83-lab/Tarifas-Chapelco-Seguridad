@@ -346,39 +346,3 @@ document.addEventListener('click', function (e) {
     }
 });
 
-async function exportarDashAPDF() { 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape');
-    doc.setFontSize(16);
-
-    // Título
-    doc.text(`Dashboard Ejecutivo - ${cliente} - ${servicio} - ${anio}`, 14, 20);
-
-    // Agregar KPIs
-    const kpiElements = document.querySelectorAll('#kpis .kpi');
-    let yOffset = 30;   
-    kpiElements.forEach((kpi, index) => {
-        const titulo = kpi.querySelector('small').innerText;
-        const valor = kpi.querySelector('h2').innerText;
-        doc.setFillColor(kpi.classList.contains('verde') ? '#4CAF50' : kpi.classList.contains('rojo') ? '#F44336' : '#FFC107');
-        doc.rect(14 + (index % 5) * 60, yOffset, 55, 20, 'F');
-        doc.setTextColor('#FFFFFF');
-        doc.text(titulo, 16 + (index % 5) * 60, yOffset + 7);
-
-        doc.setFontSize(14);
-
-        doc.text(valor, 16 + (index % 5) * 60, yOffset + 15);
-        doc.setFontSize(16);
-        if ((index + 1) % 5 === 0) {
-            yOffset += 30;
-        }
-    });
-
-    // Agregar Gráfico
-    const canvas = document.getElementById('grafico');
-    const imgData = canvas.toDataURL('image/png');
-    doc.addPage();
-    doc.text('Gráfico de Variaciones', 14, 20);
-    doc.addImage(imgData, 'PNG', 14, 30, 260, 120);
-    doc.save(`Dashboard_${cliente}_${servicio}_${anio}.pdf`);
-}
