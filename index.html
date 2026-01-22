@@ -174,12 +174,27 @@ canvas {
     margin-top: 25px;
 }
 
-/* Evita que el gráfico se colapse */
+/* Altura aumentada para los gráficos */
 .chart-container {
     position: relative;
-    height: 350px; /* Aumentamos la altura */
+    height: 450px; /* Ajuste de altura para que se vea imponente */
     width: 100%;
     margin: 20px 0;
+}
+
+/* Contenedor de brechas en una sola fila (Anual) */
+#brechas-detalle {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Fuerza dos columnas iguales */
+    gap: 20px;
+    margin-top: 25px;
+    width: 100%;
+}
+
+/* Ajuste para que los KPIs no se vean gigantes en pantallas grandes */
+.kpi h2 {
+    font-size: 28px;
+    margin: 10px 0;
 }
 </style>
 </head>
