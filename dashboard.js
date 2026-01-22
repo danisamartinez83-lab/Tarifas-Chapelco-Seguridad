@@ -117,8 +117,7 @@ async function cargarDashboard() {
     }
 }
 
-   // Tomamos el último trimestre disponible (ej: T4)
-        const u = historial[historial.length - 1];
+
 
         // 1. KPIs SUPERIORES (Valores puros del trimestre)
         renderKPIs([
