@@ -360,7 +360,6 @@ function limpiar() {
   if (c2) c2.getContext("2d").clearRect(0,0,c2.width,c2.height);
 }
 
-
 async function cargarHistorial() {
   const periodo = document.getElementById("periodo").value;
   const cliente = clienteEl().value;
@@ -368,42 +367,48 @@ async function cargarHistorial() {
   const servicio = document.getElementById("servicioHistorial").value;
 
   if (!cliente || !año || !servicio || !periodo) {
-    console.log("Faltan filtros", { cliente, año, servicio, periodo });
+    alert("Faltan seleccionar filtros para el historial");
     return;
   }
 
   const url = `${API}?action=historial&cliente=${cliente}&año=${año}&servicio=${servicio}&periodo=${periodo}`;
-  console.log("Consultando:", url);
+  
+  try {
+    const res = await fetch(url);
+    const { historial } = await res.json();
 
-  const res = await fetch(url);
-  const { historial } = await res.json();
+    if (!historial || !historial.length) {
+      alert("No se encontraron datos para este historial");
+      return;
+    }
 
-  if (!historial || !historial.length) {
-    console.warn("Historial vacío");
-    return;
+    const tbody = document.querySelector("#tablaHistorial tbody");
+    tbody.innerHTML = "";
+
+    historial.forEach((h, index) => {
+      // Si es el primer elemento y es 0%, pero sabemos que es Enero, 
+      // dejamos una nota visual o el valor que traiga la API
+      let variacionLimpia = (h.variacion === null || h.variacion === undefined) ? 0 : h.variacion;
+      
+      const colorTexto = variacionLimpia > 0 ? '#4caf50' : (variacionLimpia < 0 ? '#f44336' : '#aaa');
+      const signo = variacionLimpia > 0 ? '+' : '';
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${h.periodo}</td>
+          <td>$ ${h.promedio.toLocaleString("es-AR")}</td>
+          <td style="color:${colorTexto}; font-weight:bold">
+            ${variacionLimpia === 0 && index === 0 ? '<small style="color:#888;font-weight:normal">Base</small> 0%' : signo + variacionLimpia + ' %'}
+          </td>
+        </tr>`;
+    });
+
+    document.getElementById("tablaHistorial").style.display = "table";
+    renderGraficos(historial);
+
+  } catch (error) {
+    console.error("Error al cargar historial:", error);
   }
-
-  const tbody = document.querySelector("#tablaHistorial tbody");
-  tbody.innerHTML = "";
-
-historial.forEach(h => {
-    // Validamos que la variación no sea null/undefined
-    const variacionLimpia = (h.variacion === null || h.variacion === undefined) ? 0 : h.variacion;
-    const colorTexto = variacionLimpia > 0 ? '#4caf50' : (variacionLimpia < 0 ? '#f44336' : '#aaa');
-    const signo = variacionLimpia > 0 ? '+' : '';
-
-    tbody.innerHTML += `
-      <tr>
-        <td>${h.periodo}</td>
-        <td>$ ${h.promedio.toLocaleString("es-AR")}</td>
-        <td style="color:${colorTexto}; font-weight:bold">
-          ${signo}${variacionLimpia} %
-        </td>
-      </tr>`;
-  });
-
-  document.getElementById("tablaHistorial").style.display = "table";
-  renderGraficos(historial);
 }
 
 
