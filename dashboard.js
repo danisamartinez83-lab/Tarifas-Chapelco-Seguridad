@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbw2h95h9R3DrfKR9BlUMUhnMStL4J6lm9Wybq890Yol0Yv1vlfH6NguNN38uzW_xVTBrg/exec";
+const API = "https://script.google.com/macros/s/AKfycbw1qVmmlR0bAf33L8ui2Vkgr1ix4nNntZpsX_YIztH1Z5JKQlhjyrJQYm-zhzocwjfmoA/exec";
 
 // =====================
 // PARÁMETROS (Globales)
@@ -56,44 +56,58 @@ function extraerTrimestre(periodo) {
 async function cargarDashboard() {
     activar("btnTrimestral");
     try {
+        // CORRECCIÓN CLAVE: Enviamos cliente y servicio a inflacion_trimestral para calcular la evolución corrida de la tarifa
         const [histRes, inflRes] = await Promise.all([
             fetch(`${API}?action=historial&cliente=${cliente}&año=${anio}&servicio=${servicio}&periodo=trimestral`).then(r => r.json()),
-            fetch(`${API}?action=inflacion_trimestral&año=${anio}`).then(r => r.json())
+            fetch(`${API}?action=inflacion_trimestral&año=${anio}&cliente=${cliente}&servicio=${servicio}`).then(r => r.json())
         ]);
 
         const historial = histRes.historial || [];
         const datosRef = inflRes.inflacion || [];
 
-        if (!historial.length) {
+        if (!datosRef.length) {
             document.getElementById("kpis").innerHTML = "<p>No hay datos trimestrales disponibles.</p>";
             return;
         }
 
+        // Armamos el mapa incluyendo la propiedad d.tarifa calculada de forma corrida por el backend
         const mapaRef = {};
-        datosRef.forEach(d => { mapaRef[d.periodo] = { inf: d.inflacion, sal: d.salario }; });
-
-        historial.forEach(h => {
-            const t = extraerTrimestre(h.periodo);
-            const ref = mapaRef[t] || { inf: 0, sal: 0 };
-            h.variacion = normalizarPorcentaje(h.variacion);
-            h.inflacion = normalizarPorcentaje(ref.inf);
-            h.salario   = normalizarPorcentaje(ref.sal);
+        datosRef.forEach(d => { 
+            mapaRef[d.periodo] = { inf: d.inflacion, sal: d.salario, tar: d.tarifa }; 
         });
 
-        const u = historial[historial.length - 1];
-        const bInf = parseFloat((u.variacion - u.inflacion).toFixed(2));
-        const bSal = parseFloat((u.variacion - u.salario).toFixed(2));
+        // Usamos la estructura de datos que viene de inflRes porque ya tiene el punto "Base" y la acumulación armada
+        const datosGrafico = datosRef.map(d => {
+            return {
+                periodo: d.periodo,
+                variacion: normalizarPorcentaje(d.tarifa),
+                inflacion: normalizarPorcentaje(d.inflacion),
+                salario: normalizarPorcentaje(d.salario)
+            };
+        });
+
+        // Para los cuadros (KPIs) seguimos mostrando la última tarifa real disponible
+        const uHist = historial.length ? historial[historial.length - 1] : { promedio: 0, variacion: 0 };
+        const uRef = datosRef[datosRef.length - 1] || { inflacion: 0, salario: 0, tarifa: 0 };
+
+        const infFinal = normalizarPorcentaje(uRef.inflacion);
+        const salFinal = normalizarPorcentaje(uRef.salario);
+        const tarFinal = normalizarPorcentaje(uRef.tarifa);
+
+        const bInf = parseFloat((tarFinal - infFinal).toFixed(2));
+        const bSal = parseFloat((tarFinal - salFinal).toFixed(2));
 
         document.getElementById("kpis").innerHTML = `
-            <div class="kpi verde"><small>Tarifa Promedio</small><h2>$ ${u.promedio.toLocaleString("es-AR")}</h2></div>
-            <div class="kpi amarillo"><small>Variación Tarifa</small><h2>${u.variacion}%</h2></div>
-            <div class="kpi amarillo"><small>Inflación (T)</small><h2>${u.inflacion}%</h2></div>
-            <div class="kpi amarillo"><small>Sueldos (T)</small><h2>${u.salario}%</h2></div>
+            <div class="kpi verde"><small>Tarifa Promedio</small><h2>$ ${uHist.promedio.toLocaleString("es-AR")}</h2></div>
+            <div class="kpi amarillo"><small>Variación Tarifa Acum.</small><h2>${tarFinal}%</h2></div>
+            <div class="kpi amarillo"><small>Inflación Acum.</small><h2>${infFinal}%</h2></div>
+            <div class="kpi amarillo"><small>Sueldos Acum.</small><h2>${salFinal}%</h2></div>
             <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}"><small>Brecha vs Infl.</small><h2>${bInf > 0 ? '+' : ''}${bInf}%</h2></div>
             <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}"><small>Brecha vs Salario</small><h2>${bSal > 0 ? '+' : ''}${bSal}%</h2></div>
         `;
 
-        renderGrafico(historial);
+        // Renderizamos con los datos ordenados desde la Base (0%)
+        renderGrafico(datosGrafico);
     } catch (error) {
         console.error("Error trimestral:", error);
     }
