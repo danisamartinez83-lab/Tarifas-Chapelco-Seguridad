@@ -9,27 +9,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #0f1115;
   color: #fff;
   margin: 0;
-  padding: 15px; /* Optimizado para ganar espacio */
+  padding: 15px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
 h1 { color: #ff7a18; margin: 10px 0 5px 0; font-size: 1.8rem; }
-
 .subtitulo { color: #aaa; margin-bottom: 15px; font-size: 14px; }
 
-/* Contenedor unificado para todos los KPIs (incluyendo brechas) */
+/* Contenedor unificado para todos los KPIs */
 .kpis {
   display: grid;
-  /* En PC permite hasta 5 o 6 columnas, en móvil se ajusta solo */
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
@@ -52,15 +49,28 @@ h1 { color: #ff7a18; margin: 10px 0 5px 0; font-size: 1.8rem; }
 .kpi small { color: #aaa; font-size: 11px; text-transform: uppercase; }
 .kpi h2 { color: #ff7a18; margin: 5px 0 0 0; font-size: 1.4rem; font-weight: bold; }
 
-/* Contenedor del gráfico expandido */
+/* Sección contenedora de gráficos */
+.zona-graficos {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-grow: 1;
+}
+
 .card-grafico {
   background: #1a1d24;
   padding: 15px;
   border-radius: 14px;
-  flex-grow: 1; /* Hace que el gráfico ocupe el espacio restante */
   display: flex;
   flex-direction: column;
-  min-height: 450px; /* Altura mínima para que no se achique */
+  min-height: 380px;
+}
+
+.card-grafico h3 {
+  color: #ff7a18;
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  font-weight: normal;
 }
 
 .chart-container {
@@ -96,14 +106,12 @@ h1 { color: #ff7a18; margin: 10px 0 5px 0; font-size: 1.8rem; }
   font-weight: bold;
 }
 
-/* --- AJUSTES PARA CELULAR --- */
 @media (max-width: 600px) {
   .kpis {
-    grid-template-columns: 1fr 1fr; /* Dos columnas en móvil para que no sea tan largo */
+    grid-template-columns: 1fr 1fr;
   }
-  
   .card-grafico {
-    height: 400px;
+    min-height: 320px;
   }
 }
 </style>
@@ -122,10 +130,20 @@ h1 { color: #ff7a18; margin: 10px 0 5px 0; font-size: 1.8rem; }
 
 <div class="kpis" id="kpis"></div>
 
-<div class="card-grafico">
+<div class="zona-graficos">
+  <div class="card-grafico" id="contenedorPrincipal">
+    <h3 id="tituloGraficoPrincipal">Tendencia de Evolución Acumulada</h3>
     <div class="chart-container">
         <canvas id="grafico"></canvas>
     </div>
+  </div>
+
+  <div class="card-grafico" id="contenedorSecundario">
+    <h3>Desempeño Puro por Trimestre Aislado</h3>
+    <div class="chart-container">
+        <canvas id="graficoBarrasTrimestral"></canvas>
+    </div>
+  </div>
 </div>
 
 <script src="dashboard.js"></script>
