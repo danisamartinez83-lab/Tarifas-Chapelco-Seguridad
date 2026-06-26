@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbw2h95h9R3DrfKR9BlUMUhnMStL4J6lm9Wybq890Yol0Yv1vlfH6NguNN38uzW_xVTBrg/exec";
+const API = "https://script.google.com/macros/s/AKfycbw1qVmmlR0bAf33L8ui2Vkgr1ix4nNntZpsX_YIztH1Z5JKQlhjyrJQYm-zhzocwjfmoA/exec";
 
 // =====================
 // PARÁMETROS (Globales)
@@ -52,6 +52,7 @@ function extraerTrimestre(periodo) {
 // =====================
 async function cargarDashboard() {
     activar("btnTrimestral");
+    // Forzamos que se muestre el contenedor secundario en la vista trimestral
     document.getElementById("contenedorSecundario").style.display = "flex";
     document.getElementById("tituloGraficoPrincipal").innerText = "Tendencia de Evolución Acumulada Corriente";
 
@@ -69,7 +70,7 @@ async function cargarDashboard() {
             return;
         }
 
-        // --- 1) PROCESAR GRÁFICO 1: EVOLUCIÓN ACUMULADA CORRIDA ---
+        // --- 1) GRÁFICO LINEAL ACUMULADO ---
         const datosGraficoLineas = datosCorridos.map(d => ({
             periodo: d.periodo,
             variacion: normalizarPorcentaje(d.tarifa),
@@ -77,53 +78,64 @@ async function cargarDashboard() {
             salario: normalizarPorcentaje(d.salario)
         }));
 
-        // --- 2) PROCESAR GRÁFICO 2: DESEMPEÑO PURO AISLADO POR TRIMESTRE ---
-        // Usamos el historial puro filtrando la etiqueta "Cierre" para ver los valores reales del periodo
-        const historialFiltrado = historialPuro.filter(h => !h.isBase);
+        // --- 2) GRÁFICO DE BARRAS AISLADAS (CORRECCIÓN CLAVE) ---
+        // Filtramos para limpiar puntos "Base" si existieran en el historial
+        const historialFiltrado = historialPuro.filter(h => h.periodo && h.periodo.toString().toLowerCase() !== "base");
         
-        // Mapeamos los trimestres de la hoja de inflacion/salarios para emparejarlos de forma aislada
+        // Calculamos los valores puros aislados para cada trimestre disponible
         const datosGraficoBarras = historialFiltrado.map((h, index) => {
             const t = extraerTrimestre(h.periodo);
-            // El backend calcula el acumulado corrido, para las barras extraemos el valor puro de la lista origen
-            // Si es T1 usamos el acumulado de T1, si es T2 calculamos la diferencia compuesta o usamos el KPI puro
-            const infPura = (index === 0) ? datosCorridos.find(d => d.periodo === t)?.inflacion || 0 : h.inflacion;
-            const salPuro = (index === 0) ? datosCorridos.find(d => d.periodo === t)?.salario || 0 : h.salario;
+            
+            // Buscamos los datos correspondientes en la respuesta corrida
+            const refActual = datosCorridos.find(d => extraerTrimestre(d.periodo) === t);
+            
+            // Para T1 el valor aislado es igual al acumulado. Para T2 en adelante restamos el acumulado anterior.
+            let infPura = refActual ? refActual.inflacion : 0;
+            let salPuro = refActual ? refActual.salario : 0;
+            let tarPura = h.variacion; // Historial ya viene por trimestre aislado desde el backend
+
+            if (index > 0) {
+                const tAnt = extraerTrimestre(historialFiltrado[index - 1].periodo);
+                const refAnt = datosCorridos.find(d => extraerTrimestre(d.periodo) === tAnt);
+                if (refAnt) {
+                    infPura = infPura - refAnt.inflacion;
+                    salPuro = salPuro - refAnt.salario;
+                }
+            }
 
             return {
                 periodo: t,
-                tarifa: normalizarPorcentaje(h.variacion),
+                tarifa: normalizarPorcentaje(tarPura),
                 inflacion: normalizarPorcentaje(infPura),
                 salario: normalizarPorcentaje(salPuro)
             };
         });
 
-        // --- 3) CALCULAR Y RENDERIZAR KPIs TRIMESTRALES PUROS ---
+        // --- 3) KPIs DEL ÚLTIMO TRIMESTRE INDEPENDIENTE ---
         const uHist = historialFiltrado[historialFiltrado.length - 1] || { promedio: 0, variacion: 0 };
         const ultTrimestreLabel = extraerTrimestre(uHist.periodo);
         
-        // Buscamos si el último trimestre tiene datos de inflación cargados de forma completa
-        const uRef = datosCorridos.find(d => d.periodo === ultTrimestreLabel) || { inflacion: 0, salario: 0 };
+        // Obtenemos los valores puros calculados para el último periodo en nuestra lista de barras
+        const kpiPuro = datosGraficoBarras[datosGraficoBarras.length - 1] || { tarifa: 0, inflacion: 0, salario: 0 };
 
-        const tVariacion = normalizarPorcentaje(uHist.variacion);
-        const tInflacion = normalizarPorcentaje(uRef.inflacion);
-        const tSalario   = normalizarPorcentaje(uRef.salario);
+        const tVariacion = kpiPuro.tarifa;
+        const tInflacion = kpiPuro.inflacion;
+        const tSalario   = kpiPuro.salario;
 
         const bInf = parseFloat((tVariacion - tInflacion).toFixed(2));
         const bSal = parseFloat((tVariacion - tSalario).toFixed(2));
         
-        // Texto dinámico para advertir si el trimestre (como T2) está incompleto
         const textoPeriodo = ultTrimestreLabel === "T2" ? "T2 (Parcial)" : ultTrimestreLabel;
 
         document.getElementById("kpis").innerHTML = `
             <div class="kpi verde"><small>Tarifa Promedio (${textoPeriodo})</small><h2>$ ${uHist.promedio.toLocaleString("es-AR")}</h2></div>
-            <div class="kpi amarillo"><small>Variación Tarifa</small><h2>${tVariacion}%</h2></div>
+            <div class="kpi amarillo"><small>Variación Tarifa (${ultTrimestreLabel})</small><h2>${tVariacion}%</h2></div>
             <div class="kpi amarillo"><small>Inflación (${textoPeriodo})</small><h2>${tInflacion}%</h2></div>
             <div class="kpi amarillo"><small>Sueldos (${textoPeriodo})</small><h2>${tSalario}%</h2></div>
             <div class="kpi ${bInf >= 0 ? 'verde' : 'rojo'}"><small>Brecha vs Infl.</small><h2>${bInf > 0 ? '+' : ''}${bInf}%</h2></div>
             <div class="kpi ${bSal >= 0 ? 'verde' : 'rojo'}"><small>Brecha vs Salario</small><h2>${bSal > 0 ? '+' : ''}${bSal}%</h2></div>
         `;
 
-        // Renderizamos ambos gráficos en paralelo
         renderGraficoLineas(datosGraficoLineas);
         renderGraficoBarrasTrimestrales(datosGraficoBarras);
 
@@ -137,7 +149,8 @@ async function cargarDashboard() {
 // =====================
 async function cargarAnalisisAnual() {
     activar("btnAnual");
-    document.getElementById("contenedorSecundario").style.display = "none"; // Ocultamos el segundo gráfico
+    // Ocultamos por completo el contenedor de barras en la vista anual
+    document.getElementById("contenedorSecundario").style.display = "none"; 
     document.getElementById("tituloGraficoPrincipal").innerText = "Comparativa de Cierre Anual %";
 
     try {
@@ -218,7 +231,7 @@ function renderGraficoAnual(tarifa, inflacion, salario) {
 }
 
 // =====================
-// EXPORTACIÓN PDF MEJORADA
+// EXPORTACIÓN PDF
 // =====================
 function exportarReporteCompleto() {
     const { jsPDF } = window.jspdf;
@@ -259,7 +272,6 @@ function exportarReporteCompleto() {
         finalY += 85;
     }
 
-    // Si estamos en vista trimestral, agregamos el segundo gráfico de barras al PDF en una página nueva si es necesario
     if (!esAnual) {
         const canvas2 = document.getElementById("graficoBarrasTrimestral");
         if (canvas2) {
